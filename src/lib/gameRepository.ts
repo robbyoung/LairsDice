@@ -7,11 +7,11 @@ export class GameRepository {
 		this.games = [];
 	}
 
-	getGame(code: string) {
+	public async getGame(code: string): Promise<Game | undefined> {
 		return this.games.find((game) => game.code === code);
 	}
 
-	saveGame(game: Game) {
+	public async saveGame(game: Game): Promise<void> {
 		const index = this.games.findIndex((g) => g.code === game.code);
 		if (index !== -1) {
 			this.games[index] = game;

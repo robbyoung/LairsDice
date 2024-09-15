@@ -6,7 +6,7 @@ import { gameRepository, GameRepository } from './gameRepository';
 export class GameService {
 	constructor(private repository: GameRepository) {}
 
-	public createGame(): string {
+	public async createGame(): Promise<string> {
 		const game: Game = {
 			state: GameState.Lobby,
 			code: this.generateCode(),
@@ -20,27 +20,27 @@ export class GameService {
 		return game.code;
 	}
 
-	public addPlayer(name: string, gameCode: string): string {
+	public async addPlayer(name: string, gameCode: string): Promise<string> {
 		throw new Error('not implemented');
 	}
 
-	public getPlayers(name: string, gameCode: string): PlayerDto[] {
+	public async getPlayers(name: string, gameCode: string): Promise<PlayerDto[]> {
 		throw new Error('not implemented');
 	}
 
-	public startGame(gameCode: string): void {
+	public async startGame(gameCode: string): Promise<void> {
 		throw new Error('not implemented');
 	}
 
-	public getGame(playerToken: string): GameDto {
+	public getGame(playerToken: string): Promise<GameDto> {
 		throw new Error('not implemented');
 	}
 
-	public placeBid(bid: Bid, playerToken: string): void {}
+	public async placeBid(bid: Bid, playerToken: string): Promise<void> {}
 
-	public challengeBid(bid: Bid, playerToken: string): void {}
+	public async challengeBid(bid: Bid, playerToken: string): Promise<void> {}
 
-	public peekDice(playerToken: string): void {}
+	public async peekDice(playerToken: string): Promise<void> {}
 
 	private generateCode() {
 		const firstPart = (Math.random() * 46656) | 0;
