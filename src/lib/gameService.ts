@@ -1,12 +1,8 @@
 import { GameState, type Game } from '../types/types';
-import { GameRepository } from './gameRepository';
+import { gameRepository, GameRepository } from './gameRepository';
 
 export class GameService {
-	private repository: GameRepository;
-
-	constructor() {
-		this.repository = new GameRepository();
-	}
+	constructor(private repository: GameRepository) {}
 
 	createGame() {
 		const game: Game = {
@@ -29,4 +25,4 @@ export class GameService {
 	}
 }
 
-export const gameService = new GameService();
+export const gameService = new GameService(gameRepository);
