@@ -11,7 +11,7 @@ export type Bid = {
 
 export type Player = {
 	name: string;
-	token: string;
+	code: string;
 	dice: number[];
 };
 
