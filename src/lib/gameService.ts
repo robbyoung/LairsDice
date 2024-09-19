@@ -28,7 +28,7 @@ export class GameService {
 		throw new Error('not implemented');
 	}
 
-	public async startGame(gameCode: string): Promise<void> {
+	public async startGame(playerToken: string): Promise<void> {
 		throw new Error('not implemented');
 	}
 
@@ -36,13 +36,19 @@ export class GameService {
 		throw new Error('not implemented');
 	}
 
-	public async placeBid(bid: Bid, playerToken: string): Promise<void> {}
+	public async placeBid(bid: Bid, playerToken: string): Promise<void> {
+		throw new Error('not implemented');
+	}
 
-	public async challengeBid(bid: Bid, playerToken: string): Promise<void> {}
+	public async challengeBid(bid: Bid, playerToken: string): Promise<void> {
+		throw new Error('not implemented');
+	}
 
-	public async peekDice(playerToken: string): Promise<void> {}
+	public async peekDice(playerToken: string): Promise<void> {
+		throw new Error('not implemented');
+	}
 
-	private generateCode() {
+	public generateCode() {
 		const firstPart = (Math.random() * 46656) | 0;
 		const secondPart = (Math.random() * 46656) | 0;
 		return ('000' + firstPart.toString(36)).slice(-3) + ('000' + secondPart.toString(36)).slice(-3);
