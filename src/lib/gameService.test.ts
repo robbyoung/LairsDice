@@ -143,7 +143,10 @@ class GameBuilder {
 			code: MOCK_RANDOM,
 			players: [],
 			currentBid: undefined,
-			currentPlayer: undefined
+			currentPlayer: undefined,
+			maxPlayers: 8,
+			numberOfPlayers: 0,
+			initialDiceCount: 6
 		};
 	}
 

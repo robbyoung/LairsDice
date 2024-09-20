@@ -21,4 +21,7 @@ export type Game = {
 	currentPlayer: number | undefined;
 	players: Player[];
 	currentBid: Bid | undefined;
+	maxPlayers: number;
+	numberOfPlayers: number;
+	initialDiceCount: number;
 };
