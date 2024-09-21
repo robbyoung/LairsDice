@@ -1,9 +1,12 @@
-import { beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { GameService } from './gameService';
 import { GameRepository } from './gameRepository';
 import { GameState, type Bid, type Game, type Player } from '../types/types';
+import { Roller } from './roller';
 
 const MOCK_RANDOM = 'aRandomValue';
+const MOCK_START_PLAYER = 1;
+const MOCK_DICE = [1, 2, 3, 4, 5, 6];
 
 describe('GameService', () => {
 	let repository: GameRepository;
@@ -12,10 +15,15 @@ describe('GameService', () => {
 	let saveSpy: MockInstance;
 	let getSpy: MockInstance;
 
+	let roller: Roller;
+	let rollSpy: MockInstance;
+
 	beforeEach(() => {
 		repository = new GameRepository();
-		service = new GameService(repository);
+		roller = new Roller();
+		service = new GameService(repository, roller);
 		savedGame = undefined;
+
 		saveSpy = vi.spyOn(repository, 'saveGame');
 		saveSpy.mockImplementation(async (game) => {
 			savedGame = game;
@@ -23,7 +31,16 @@ describe('GameService', () => {
 
 		getSpy = vi.spyOn(repository, 'getGame');
 
+		rollSpy = vi.spyOn(roller, 'rollDice');
+		rollSpy.mockReturnValue(MOCK_DICE);
+
+		vi.spyOn(roller, 'randomNumber').mockReturnValue(MOCK_START_PLAYER);
+
 		vi.spyOn(service, 'generateCode').mockReturnValue(MOCK_RANDOM);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
 	});
 
 	describe('createGame()', () => {
@@ -36,7 +53,7 @@ describe('GameService', () => {
 		});
 	});
 
-	describe.skip('addPlayer()', async () => {
+	describe('addPlayer()', async () => {
 		it('can add a player to a lobby', async () => {
 			const initialState = new GameBuilder().setState(GameState.Lobby).build();
 			getSpy.mockResolvedValue(initialState);
@@ -57,7 +74,7 @@ describe('GameService', () => {
 
 			const func = async () => await service.addPlayer('aName', initialState.code);
 
-			expect(func).toThrowError();
+			expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the game is in progress', async () => {
@@ -69,7 +86,7 @@ describe('GameService', () => {
 
 			const func = async () => await service.addPlayer('aName', initialState.code);
 
-			expect(func).toThrowError();
+			expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the game does not exist', async () => {
@@ -78,13 +95,18 @@ describe('GameService', () => {
 
 			const func = async () => await service.addPlayer('aName', 'aBadCode');
 
-			expect(func).toThrowError();
+			expect(func).rejects.toThrowError();
 		});
 	});
 
-	describe.skip('startGame()', async () => {
+	describe('startGame()', async () => {
 		it('can be used by p1 to start a game with a full lobby', async () => {
-			const initialState = new GameBuilder().setState(GameState.Lobby).fillRemainingSeats().build();
+			const initialState = new GameBuilder()
+				.setState(GameState.Lobby)
+				.addPlayer('playerOne', 'p1', [])
+				.addPlayer('playerTwo', 'p2', [])
+				.addPlayer('playerThree', 'p3', [])
+				.build();
 			getSpy.mockResolvedValue(initialState);
 
 			// player token is <GAME_CODE>-<PLAYER-CODE>
@@ -93,8 +115,10 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.fillRemainingSeats()
-				.setCurrentPlayer(0)
+				.addPlayer('playerOne', 'p1', MOCK_DICE)
+				.addPlayer('playerTwo', 'p2', MOCK_DICE)
+				.addPlayer('playerThree', 'p3', MOCK_DICE)
+				.setCurrentPlayer(MOCK_START_PLAYER)
 				.build();
 			expect(savedGame).toStrictEqual(expectedState);
 		});
@@ -106,7 +130,7 @@ describe('GameService', () => {
 			const badToken = `${initialState.players[0].code}-aBadGameCode`;
 			const func = async () => await service.startGame(badToken);
 
-			expect(func).toThrowError();
+			expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the player is not p1', async () => {
@@ -116,7 +140,7 @@ describe('GameService', () => {
 			const playerTwoToken = `${initialState.players[1].code}-${initialState.code}`;
 			const func = async () => await service.startGame(playerTwoToken);
 
-			expect(func).toThrowError();
+			expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the lobby is not full', async () => {
@@ -129,7 +153,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.players[0].code}-${initialState.code}`;
 			const func = async () => await service.startGame(playerOneToken);
 
-			expect(func).toThrowError();
+			expect(func).rejects.toThrowError();
 		});
 	});
 });

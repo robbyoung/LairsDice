@@ -5,7 +5,10 @@ import { gameRepository, GameRepository } from './gameRepository';
 import { Roller } from './roller';
 
 export class GameService {
-	constructor(private repository: GameRepository) {}
+	constructor(
+		private repository: GameRepository,
+		private roller: Roller
+	) {}
 
 	public async createGame(): Promise<string> {
 		const game: Game = {
@@ -181,4 +184,4 @@ export class GameService {
 	}
 }
 
-export const gameService = new GameService(gameRepository);
+export const gameService = new GameService(gameRepository, new Roller());
