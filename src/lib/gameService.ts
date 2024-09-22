@@ -60,8 +60,8 @@ export class GameService {
 	}
 
 	// Should this instead return OpponentDto[]?
-	public async getPlayers(gameCode: string): Promise<PlayerDto[]> {
-		const game: Game | undefined = await gameRepository.getGame(gameCode);
+	public async getPlayers(playerToken: string): Promise<PlayerDto[]> {
+		const game: Game | undefined = await gameRepository.getGame(playerToken);
 
 		if (!game) {
 			throw new Error('Game is undefined');
@@ -140,7 +140,7 @@ export class GameService {
 		throw new Error('not implemented');
 	}
 
-	public async placeBid(bid: Bid, playerToken: string): Promise<void> {
+	public async placeBid(quantity: number, dice: number, playerToken: string): Promise<void> {
 		const gameCode = this.getGameCode(playerToken);
 		const game: Game | undefined = await gameRepository.getGame(gameCode);
 		if (!game) {
@@ -150,11 +150,7 @@ export class GameService {
 		throw new Error('not implemented');
 	}
 
-	public async challengeBid(bid: Bid, playerToken: string): Promise<void> {
-		throw new Error('not implemented');
-	}
-
-	public async peekDice(playerToken: string): Promise<void> {
+	public async challengeBid(playerToken: string): Promise<void> {
 		throw new Error('not implemented');
 	}
 
