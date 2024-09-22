@@ -17,8 +17,7 @@ export class GameService {
 			currentPlayer: undefined,
 			players: [],
 			currentBid: undefined,
-			maxPlayers: 8,
-			numberOfPlayers: 0,
+			maxPlayers: 3,
 			initialDiceCount: 6
 		};
 
@@ -28,7 +27,7 @@ export class GameService {
 	}
 
 	public async addPlayer(playerName: string, gameCode: string): Promise<string> {
-		const game: Game | undefined = await gameRepository.getGame(gameCode);
+		const game: Game | undefined = await this.repository.getGame(gameCode);
 
 		if (!game) {
 			throw new Error('Game is undefined');
@@ -40,13 +39,15 @@ export class GameService {
 			throw new Error('The game has already finished');
 		}
 
+		const playerCode = this.generateCode();
+
 		const newPlayer: Player = {
 			name: playerName,
-			code: gameCode,
+			code: playerCode,
 			dice: []
 		};
 
-		if (game.players.length <= game.maxPlayers) {
+		if (game.players.length < game.maxPlayers) {
 			game.players.push(newPlayer);
 		} else {
 			throw new Error('max player cap check failed');
@@ -54,51 +55,41 @@ export class GameService {
 
 		this.repository.saveGame(game);
 
-		return playerName;
-
-		// throw new Error('not implemented');
+		return `${gameCode}-${playerCode}`;
 	}
 
-	// Should this instead return OpponentDto[]?
 	public async getPlayers(playerToken: string): Promise<PlayerDto[]> {
-		const game: Game | undefined = await gameRepository.getGame(playerToken);
+		const { gameCode } = this.splitPlayerToken(playerToken);
+		const game: Game | undefined = await this.repository.getGame(gameCode);
 
 		if (!game) {
 			throw new Error('Game is undefined');
 		}
 
-		return game.players;
-
-		// throw new Error('not implemented');
+		return game.players.map((player) => ({ name: player.name }));
 	}
 
 	public async startGame(playerToken: string): Promise<void> {
-		const gameCode = this.getGameCode(playerToken);
-		const game: Game | undefined = await gameRepository.getGame(gameCode);
+		const { gameCode, playerCode } = this.splitPlayerToken(playerToken);
+		const game: Game | undefined = await this.repository.getGame(gameCode);
 		if (!game) {
 			throw new Error('Game is undefined');
 		}
 
-		if (game.players[0].name !== this.getPlayerName(playerToken)) {
+		if (game.players[0].code !== playerCode) {
 			throw new Error('Player is not the host');
 		}
 
-		const diceRoller: Roller = new Roller();
-		const numPlayers = game.players.length;
+		if (game.players.length != game.maxPlayers) {
+			throw new Error('Not enough players');
+		}
 
-		game.players.forEach((player) => {
-			player.dice = diceRoller.rollDice(game.initialDiceCount);
-		});
-		// ^^^
-		// |||  What do you think of making the dice roller roll all of the dice in the game in
-		// its "rollDice" function because you would always roll all of the dice.
-		// Would need a Game to be passed to it though: "diceRoller.rollAllDice(game.initialDiceCount, game)"";
-		this.chooseStartingPlayer(numPlayers, game);
+		this.rollAllDice(game);
+
+		this.chooseStartingPlayer(game);
 		this.updateGameState(GameState.InProgress, game);
 
 		this.repository.saveGame(game);
-
-		// throw new Error('not implemented');
 	}
 
 	public async getGame(playerToken: string): Promise<GameDto> {
@@ -141,17 +132,85 @@ export class GameService {
 	}
 
 	public async placeBid(quantity: number, dice: number, playerToken: string): Promise<void> {
-		const gameCode = this.getGameCode(playerToken);
-		const game: Game | undefined = await gameRepository.getGame(gameCode);
+		const { gameCode, playerCode } = this.splitPlayerToken(playerToken);
+		const game: Game | undefined = await this.repository.getGame(gameCode);
 		if (!game) {
 			throw new Error('Game is undefined');
 		}
 
-		throw new Error('not implemented');
+		if (game.state !== GameState.InProgress || game.currentPlayer === undefined) {
+			throw new Error('Game is not in progress');
+		}
+
+		if (game.players[game.currentPlayer].code !== playerCode) {
+			throw new Error('Incorrect player');
+		}
+
+		if (quantity < 1 || dice < 1 || dice > 6) {
+			throw new Error('Invalid bid');
+		}
+
+		if (game.currentBid !== undefined) {
+			if (quantity < game.currentBid.quantity) {
+				throw new Error('Bid must increase');
+			} else if (dice <= game.currentBid.dice && quantity === game.currentBid.quantity) {
+				throw new Error('Bid must increase');
+			}
+		}
+
+		game.currentBid = { quantity, dice };
+		this.setNextPlayer(game);
+
+		this.repository.saveGame(game);
 	}
 
 	public async challengeBid(playerToken: string): Promise<void> {
-		throw new Error('not implemented');
+		const { gameCode, playerCode } = this.splitPlayerToken(playerToken);
+		const game: Game | undefined = await this.repository.getGame(gameCode);
+		if (!game) {
+			throw new Error('Game is undefined');
+		}
+
+		if (game.state !== GameState.InProgress || game.currentPlayer === undefined) {
+			throw new Error('Game is not in progress');
+		}
+
+		if (game.players[game.currentPlayer].code !== playerCode) {
+			throw new Error('Incorrect player');
+		}
+
+		if (game.currentBid === undefined) {
+			throw new Error('There is no bid to challenge');
+		}
+
+		const allDice: number[] = game.players.flatMap((player) => player.dice);
+		const matchingDice: number[] = allDice.filter((dice) => dice === game.currentBid?.dice);
+		let losingPlayer: Player;
+
+		if (matchingDice.length >= game.currentBid.quantity) {
+			losingPlayer = game.players[game.currentPlayer];
+		} else {
+			let previousPlayerIndex: number = game.currentPlayer;
+			do {
+				previousPlayerIndex = (previousPlayerIndex - 1 + game.players.length) % game.players.length;
+				losingPlayer = game.players[previousPlayerIndex];
+			} while (losingPlayer.dice.length === 0);
+		}
+
+		losingPlayer.dice.pop();
+
+		const remainingPlayers = game.players.filter((player) => player.dice.length > 0);
+
+		if (remainingPlayers.length === 1) {
+			game.state = GameState.Finished;
+		} else {
+			this.setNextPlayer(game);
+			this.rollAllDice(game);
+		}
+
+		game.currentBid = undefined;
+
+		this.repository.saveGame(game);
 	}
 
 	public generateCode() {
@@ -160,23 +219,34 @@ export class GameService {
 		return ('000' + firstPart.toString(36)).slice(-3) + ('000' + secondPart.toString(36)).slice(-3);
 	}
 
-	private getGameCode(playerToken: string): string {
+	public splitPlayerToken(playerToken: string): { gameCode: string; playerCode: string } {
 		const splitToken: string[] = playerToken.split('-');
-		return splitToken[1];
+		return { gameCode: splitToken[0], playerCode: splitToken[1] };
 	}
 
-	private getPlayerName(playerToken: string): string {
-		const splitToken: string[] = playerToken.split('-');
-		return splitToken[0];
-	}
-
-	private chooseStartingPlayer(numberOfPlayers: number, game: Game) {
-		const numberRoller: Roller = new Roller();
-		game.currentPlayer = numberRoller.randomNumber(numberOfPlayers);
+	private chooseStartingPlayer(game: Game) {
+		const numPlayers = game.players.length;
+		game.currentPlayer = this.roller.randomNumber(numPlayers);
 	}
 
 	private updateGameState(newState: GameState, game: Game) {
 		game.state = newState;
+	}
+
+	private rollAllDice(game: Game) {
+		game.players.forEach((player) => {
+			player.dice = this.roller.rollDice(player.dice.length);
+		});
+	}
+
+	private setNextPlayer(game: Game) {
+		if (game.currentPlayer === undefined) {
+			throw new Error('No current player set');
+		}
+
+		do {
+			game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+		} while (game.players[game.currentPlayer].dice.length === 0);
 	}
 }
 

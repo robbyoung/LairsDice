@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 export class Roller {
 	rollDice(diceCount: number): number[] {
 		const playerDice: number[] = [];
@@ -6,8 +5,6 @@ export class Roller {
 		while (playerDice.length < diceCount) {
 			playerDice.push(this.randomNumber(6));
 		}
-
-		console.log('Result: ' + playerDice);
 
 		return playerDice;
 	}

@@ -7,10 +7,9 @@ export type Opponent = {
 };
 
 export type GameDto = {
-	left: Opponent;
-	right: Opponent;
+	opponents: Opponent[];
 	dice: number[];
-	turn: 'player' | 'left' | 'right';
+	turn: number;
 };
 
 export type PlayerDto = {
