@@ -63,7 +63,7 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.Lobby)
-				.addPlayer('aName', MOCK_RANDOM, [])
+				.addPlayer('aName', MOCK_RANDOM, [0, 0, 0, 0, 0, 0])
 				.build();
 			expect(savedGame).toStrictEqual(expectedState);
 			expect(returnToken, 'returns player token').toBe(`${MOCK_RANDOM}-${MOCK_RANDOM}`);
@@ -73,7 +73,6 @@ describe('GameService', () => {
 			const initialState = new GameBuilder().setState(GameState.Lobby).fillRemainingSeats().build();
 			getSpy.mockResolvedValue(initialState);
 
-			console.dir(initialState);
 			const func = async () => await service.addPlayer('aName', initialState.code);
 
 			expect(func).rejects.toThrowError();
@@ -418,6 +417,33 @@ describe('GameService', () => {
 			expect(rollSpy, 'player two rolls four dice').toHaveBeenNthCalledWith(3, 4);
 		});
 
+		it('can resolve a challenger win with a skipped player', async () => {
+			const initialState = new GameBuilder()
+				.setState(GameState.InProgress)
+				.addPlayer('playerOne', 'p1', [2, 2, 2])
+				.addPlayer('playerTwo', 'p2', [])
+				.addPlayer('playerThree', 'p3', [2, 2, 3, 4, 5])
+				.setCurrentPlayer(2)
+				.setCurrentBid(20, 2)
+				.build();
+			getSpy.mockResolvedValue(initialState);
+
+			const playerThreeToken = `${initialState.code}-${initialState.players[2].code}`;
+			await service.challengeBid(playerThreeToken);
+
+			const expectedState = new GameBuilder()
+				.setState(GameState.InProgress)
+				.addPlayer('playerOne', 'p1', MOCK_DICE)
+				.addPlayer('playerTwo', 'p2', MOCK_DICE)
+				.addPlayer('playerThree', 'p3', MOCK_DICE)
+				.setCurrentPlayer(0)
+				.build();
+			expect(savedGame).toStrictEqual(expectedState);
+			expect(rollSpy, 'player one rolls two dice').toHaveBeenNthCalledWith(1, 2);
+			expect(rollSpy, 'player two rolls no dice').toHaveBeenNthCalledWith(2, 0);
+			expect(rollSpy, 'player two rolls five dice').toHaveBeenNthCalledWith(3, 5);
+		});
+
 		it('ends the game if only one player has dice left after the challenge', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
@@ -491,12 +517,15 @@ describe('GameService', () => {
 
 	it('can run a full game', async () => {
 		// all dice roll 1's
-		rollSpy.mockImplementation((quantity) => Array(quantity).map(() => 1));
+		const mockStore = { savedGame };
+		getSpy.mockImplementation(() => mockStore.savedGame);
+		saveSpy.mockImplementation((game) => (mockStore.savedGame = game));
+		rollSpy.mockImplementation((quantity) => Array.from(Array(quantity), () => 1));
 
 		const gameCode = await service.createGame();
-		const p1Code = await service.addPlayer('p1', gameCode);
-		const p2Code = await service.addPlayer('p2', gameCode);
-		const p3Code = await service.addPlayer('p3', gameCode);
+		const p1Code = await service.addPlayer('playerOne', gameCode);
+		const p2Code = await service.addPlayer('playerTwo', gameCode);
+		const p3Code = await service.addPlayer('playerThree', gameCode);
 		await service.startGame(p1Code);
 
 		// round 1: p2 starts and loses die
@@ -530,6 +559,7 @@ describe('GameService', () => {
 		await service.challengeBid(p2Code);
 
 		// round 8 - 13: p1 loses six rounds in a row and is out of dice
+		await service.placeBid(2, 1, p3Code);
 		await service.placeBid(20, 1, p1Code);
 		await service.challengeBid(p3Code);
 		await service.placeBid(20, 1, p1Code);
@@ -545,12 +575,12 @@ describe('GameService', () => {
 
 		const expectedState = new GameBuilder()
 			.setState(GameState.Finished)
-			.addPlayer('playerOne', 'p1', [])
-			.addPlayer('playerTwo', 'p2', [])
-			.addPlayer('playerThree', 'p3', [1, 1, 1, 1, 1])
+			.addPlayer('playerOne', MOCK_RANDOM, [])
+			.addPlayer('playerTwo', MOCK_RANDOM, [])
+			.addPlayer('playerThree', MOCK_RANDOM, [1, 1, 1, 1, 1])
 			.setCurrentPlayer(2)
 			.build();
-		expect(savedGame).toStrictEqual(expectedState);
+		expect(mockStore.savedGame).toStrictEqual(expectedState);
 	});
 });
 

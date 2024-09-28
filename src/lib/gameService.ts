@@ -40,11 +40,12 @@ export class GameService {
 		}
 
 		const playerCode = this.generateCode();
+		const startingDice = Array.from(Array(game.initialDiceCount), () => 0);
 
 		const newPlayer: Player = {
 			name: playerName,
 			code: playerCode,
-			dice: []
+			dice: startingDice
 		};
 
 		if (game.players.length < game.maxPlayers) {
