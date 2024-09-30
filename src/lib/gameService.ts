@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import type { GameDto, PlayerDto } from '../types/dtos';
+import type { GameDto, OpponentDto, PlayerDto } from '../types/dtos';
 import { GameState, type Bid, type Game, type Player } from '../types/types';
 import { gameRepository, GameRepository } from './gameRepository';
 import { Roller } from './roller';
@@ -93,42 +93,53 @@ export class GameService {
 	}
 
 	public async getGame(playerToken: string): Promise<GameDto> {
-		// // Currently not sure where to convert to OpponentDtos for left and right players.
-		// const gameCode = this.getGameCode(playerToken);
-		// const game: Game | undefined = await gameRepository.getGame(gameCode);
-		// if (!game) {
-		// 	throw new Error('Game is undefined');
-		// }
-		// const players: PlayerDto[] = await this.getPlayers(gameCode);
-		// const numPlayers = players.length;
-		// const playerIndex: number = game.players.findIndex((player) =>
-		// 	player.name.includes(this.getPlayerName(playerToken))
-		// );
-		// const leftPlayerIndex: number = (playerIndex - 1 + numPlayers) % numPlayers;
-		// const rightPlayerIndex: number = (playerIndex + 1) % numPlayers;
+		const { gameCode, playerCode } = this.splitPlayerToken(playerToken);
+		const game: Game | undefined = await this.repository.getGame(gameCode);
 
-		// const playerToLeft: PlayerDto = players[leftPlayerIndex];
-		// const playerToRight: PlayerDto = players[rightPlayerIndex];
-		// const playerDice: number[] = game.players[playerIndex].dice;
-		// let playerTurn: 'player' | 'left' | 'right';
-		// if (game.currentPlayer == playerIndex) {
-		// 	playerTurn = 'player';
-		// } else if (playerIndex >= leftPlayerIndex) {
-		// 	playerTurn = 'left';
-		// } else {
-		// 	playerTurn = 'right';
-		// }
+		if (!game) {
+			throw new Error('Game is undefined');
+		}
 
-		// const gameDetails: GameDto = {
-		// 	left: playerToLeft,
-		// 	right: playerToRight,
-		// 	dice: playerDice,
-		// 	turn: playerTurn
-		// };
+		if (!game.currentPlayer) {
+			throw new Error('Current player is undefined');
+		}
 
-		// return gameDetails;
+		const players: PlayerDto[] = await this.getPlayers(gameCode);
+		const numPlayers = players.length;
+		const playerIndex: number = game.players.findIndex((player) =>
+			player.code.includes(playerCode)
+		);
 
-		throw new Error('not implemented');
+		const opponents: OpponentDto[] = [];
+		players.forEach((player) => {
+			const opponent: OpponentDto = {
+				name: player.name,
+				lastBid: undefined
+			};
+			opponents.push(opponent);
+		});
+
+		if (game.currentBid !== undefined) {
+			let previousPlayerIndex: number = game.currentPlayer;
+			let bidderIndex: number | undefined = undefined;
+			do {
+				previousPlayerIndex = (previousPlayerIndex - 1 + numPlayers) % numPlayers;
+				if (game.players[previousPlayerIndex].dice.length > 0) {
+					bidderIndex = previousPlayerIndex;
+				}
+			} while (bidderIndex === undefined);
+			opponents[bidderIndex].lastBid = game.currentBid;
+		}
+
+		const playerDice: number[] = game.players[playerIndex].dice;
+
+		const gameDetails: GameDto = {
+			opponents: opponents,
+			dice: playerDice,
+			turn: game.currentPlayer
+		};
+
+		return gameDetails;
 	}
 
 	public async placeBid(quantity: number, dice: number, playerToken: string): Promise<void> {

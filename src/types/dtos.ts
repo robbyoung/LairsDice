@@ -1,13 +1,12 @@
 import type { Bid } from './types';
 
-export type Opponent = {
+export type OpponentDto = {
 	name: string;
-	peeking: boolean;
-	lastBid: Bid;
+	lastBid: Bid | undefined;
 };
 
 export type GameDto = {
-	opponents: Opponent[];
+	opponents: OpponentDto[];
 	dice: number[];
 	turn: number;
 };
