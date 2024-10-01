@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { GameDto, OpponentDto, PlayerDto } from '../types/dtos';
-import { GameState, type Bid, type Game, type Player } from '../types/types';
+import { GameState, type Game, type Player } from '../types/types';
 import { gameRepository, GameRepository } from './gameRepository';
 import { Roller } from './roller';
 
@@ -101,7 +100,7 @@ export class GameService {
 			throw new Error('Game is undefined');
 		}
 
-		if (!game.currentPlayer) {
+		if (game.currentPlayer === undefined) {
 			throw new Error('Current player is undefined');
 		}
 
@@ -111,25 +110,25 @@ export class GameService {
 			player.code.includes(playerCode)
 		);
 
-		const opponents: OpponentDto[] = [];
-		players.forEach((player) => {
-			const opponent: OpponentDto = {
-				name: player.name,
-				lastBid: undefined
-			};
-			opponents.push(opponent);
-		});
-
+		let bidderIndex: number | undefined = undefined;
 		if (game.currentBid !== undefined) {
 			let previousPlayerIndex: number = game.currentPlayer;
-			let bidderIndex: number | undefined = undefined;
 			do {
 				previousPlayerIndex = (previousPlayerIndex - 1 + numPlayers) % numPlayers;
 				if (game.players[previousPlayerIndex].dice.length > 0) {
 					bidderIndex = previousPlayerIndex;
 				}
 			} while (bidderIndex === undefined);
-			opponents[bidderIndex].lastBid = game.currentBid;
+		}
+
+		const opponents: OpponentDto[] = [];
+		for (let i = playerIndex + 1; i !== playerIndex; i = (i + 1) % numPlayers) {
+			const opponent: OpponentDto = {
+				name: players[i].name,
+				lastBid: bidderIndex === i ? game.currentBid : undefined,
+				currentTurn: game.currentPlayer === i
+			};
+			opponents.push(opponent);
 		}
 
 		const playerDice: number[] = game.players[playerIndex].dice;
@@ -137,7 +136,7 @@ export class GameService {
 		const gameDetails: GameDto = {
 			opponents: opponents,
 			dice: playerDice,
-			turn: game.currentPlayer
+			playerTurn: game.currentPlayer === playerIndex
 		};
 
 		return gameDetails;

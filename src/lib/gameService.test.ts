@@ -310,7 +310,7 @@ describe('GameService', () => {
 			expect(func).rejects.toThrowError();
 		});
 
-		it('throws if the bid is too low', async () => {
+		it('throws if the bid is the same as the previous bid', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
 				.addPlayer('playerOne', 'p1', [1, 2, 3, 4])
@@ -323,6 +323,23 @@ describe('GameService', () => {
 
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.placeBid(2, 2, playerOneToken);
+
+			expect(func).rejects.toThrowError();
+		});
+
+		it('throws if the bid quantity decreases', async () => {
+			const initialState = new GameBuilder()
+				.setState(GameState.InProgress)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4])
+				.addPlayer('playerTwo', 'p2', [1, 2])
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5])
+				.setCurrentPlayer(0)
+				.setCurrentBid(2, 2)
+				.build();
+			getSpy.mockResolvedValue(initialState);
+
+			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
+			const func = async () => await service.placeBid(1, 2, playerOneToken);
 
 			expect(func).rejects.toThrowError();
 		});
@@ -515,7 +532,35 @@ describe('GameService', () => {
 		});
 	});
 
-	it.skip('can run a full game', async () => {
+	describe('getGame', () => {
+		it('returns the game state relative to the calling player', async () => {
+			const initialState = new GameBuilder()
+				.setState(GameState.Lobby)
+				.addPlayer('playerOne', 'p1', [5, 3, 3, 4])
+				.addPlayer('playerTwo', 'p2', [2, 2])
+				.addPlayer('playerThree', 'p3', [4, 4, 3])
+				.setCurrentPlayer(0)
+				.setCurrentBid(3, 4)
+				.build();
+			getSpy.mockResolvedValue(initialState);
+
+			const playerTwoToken = `${initialState.code}-${initialState.players[1].code}`;
+			const result = await service.getGame(playerTwoToken);
+
+			expect(result.dice).toStrictEqual([2, 2]);
+			expect(result.playerTurn).toBe(false);
+			expect(result.opponents).toHaveLength(2);
+
+			expect(result.opponents[0].name).toBe('playerThree');
+			expect(result.opponents[0].lastBid).toStrictEqual({ quantity: 3, dice: 4 });
+			expect(result.opponents[0].currentTurn).toBe(false);
+			expect(result.opponents[1].name).toBe('playerOne');
+			expect(result.opponents[1].lastBid).toBeUndefined();
+			expect(result.opponents[1].currentTurn).toBe(true);
+		});
+	});
+
+	it('can run a full game', async () => {
 		// all dice roll 1's
 		const mockStore = { savedGame };
 		getSpy.mockImplementation(() => mockStore.savedGame);
