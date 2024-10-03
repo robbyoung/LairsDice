@@ -1,17 +1,13 @@
-import type { Bid } from './types';
-
-export type OpponentDto = {
-	name: string;
-	lastBid: Bid | undefined;
-	currentTurn: boolean;
-};
+import type { Bid, GameState } from './types';
 
 export type GameDto = {
-	opponents: OpponentDto[];
-	dice: number[];
-	playerTurn: boolean;
+	players: PlayerDto[];
+	state: GameState;
 };
 
 export type PlayerDto = {
 	name: string;
+	dice?: number[];
+	lastBid?: Bid;
+	currentTurn?: boolean;
 };

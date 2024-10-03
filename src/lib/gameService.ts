@@ -1,4 +1,4 @@
-import type { GameDto, OpponentDto, PlayerDto } from '../types/dtos';
+import type { GameDto, PlayerDto } from '../types/dtos';
 import { GameState, type Game, type Player } from '../types/types';
 import { gameRepository, GameRepository } from './gameRepository';
 import { Roller } from './roller';
@@ -104,8 +104,7 @@ export class GameService {
 			throw new Error('Current player is undefined');
 		}
 
-		const players: PlayerDto[] = await this.getPlayers(gameCode);
-		const numPlayers = players.length;
+		const numPlayers = game.players.length;
 		const playerIndex: number = game.players.findIndex((player) =>
 			player.code.includes(playerCode)
 		);
@@ -121,22 +120,18 @@ export class GameService {
 			} while (bidderIndex === undefined);
 		}
 
-		const opponents: OpponentDto[] = [];
-		for (let i = playerIndex + 1; i !== playerIndex; i = (i + 1) % numPlayers) {
-			const opponent: OpponentDto = {
-				name: players[i].name,
+		const playerDtos: PlayerDto[] = game.players.map((player, i) => {
+			return {
+				name: player.name,
 				lastBid: bidderIndex === i ? game.currentBid : undefined,
+				dice: playerIndex === i ? player.dice : undefined,
 				currentTurn: game.currentPlayer === i
 			};
-			opponents.push(opponent);
-		}
-
-		const playerDice: number[] = game.players[playerIndex].dice;
+		});
 
 		const gameDetails: GameDto = {
-			opponents: opponents,
-			dice: playerDice,
-			playerTurn: game.currentPlayer === playerIndex
+			players: playerDtos,
+			state: game.state
 		};
 
 		return gameDetails;

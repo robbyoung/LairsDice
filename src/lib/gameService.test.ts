@@ -535,7 +535,7 @@ describe('GameService', () => {
 	describe('getGame', () => {
 		it('returns the game state relative to the calling player', async () => {
 			const initialState = new GameBuilder()
-				.setState(GameState.Lobby)
+				.setState(GameState.InProgress)
 				.addPlayer('playerOne', 'p1', [5, 3, 3, 4])
 				.addPlayer('playerTwo', 'p2', [2, 2])
 				.addPlayer('playerThree', 'p3', [4, 4, 3])
@@ -547,16 +547,20 @@ describe('GameService', () => {
 			const playerTwoToken = `${initialState.code}-${initialState.players[1].code}`;
 			const result = await service.getGame(playerTwoToken);
 
-			expect(result.dice).toStrictEqual([2, 2]);
-			expect(result.playerTurn).toBe(false);
-			expect(result.opponents).toHaveLength(2);
-
-			expect(result.opponents[0].name).toBe('playerThree');
-			expect(result.opponents[0].lastBid).toStrictEqual({ quantity: 3, dice: 4 });
-			expect(result.opponents[0].currentTurn).toBe(false);
-			expect(result.opponents[1].name).toBe('playerOne');
-			expect(result.opponents[1].lastBid).toBeUndefined();
-			expect(result.opponents[1].currentTurn).toBe(true);
+			expect(result.state).toBe(GameState.InProgress);
+			expect(result.players).toHaveLength(3);
+			expect(result.players[0].name).toBe('playerOne');
+			expect(result.players[0].lastBid).toBeUndefined();
+			expect(result.players[0].currentTurn).toBe(true);
+			expect(result.players[0].dice).toBeUndefined();
+			expect(result.players[1].name).toBe('playerTwo');
+			expect(result.players[1].lastBid).toBeUndefined();
+			expect(result.players[1].currentTurn).toBe(false);
+			expect(result.players[1].dice).toStrictEqual([2, 2]);
+			expect(result.players[2].name).toBe('playerThree');
+			expect(result.players[2].lastBid).toStrictEqual({ quantity: 3, dice: 4 });
+			expect(result.players[2].currentTurn).toBe(false);
+			expect(result.players[2].dice).toBeUndefined();
 		});
 	});
 
