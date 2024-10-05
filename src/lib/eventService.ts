@@ -39,9 +39,7 @@ export class EventService {
 		};
 
 		for (const player of players) {
-			if (player.name !== biddingPlayer.name) {
-				await this.repository.savePlayerEvent(player.code, event);
-			}
+			await this.repository.savePlayerEvent(player.code, event);
 		}
 	}
 
@@ -52,7 +50,7 @@ export class EventService {
 		defender: Player,
 		challengeSuccess: boolean
 	): Promise<void> {
-		const dicePool = players.map((p) => ({ name: p.name, dice: p.dice }));
+		const dicePool = players.map((p) => ({ name: p.name, dice: [...p.dice] }));
 		const event: ChallengeEvent = {
 			type: EventType.Challenge,
 			challengerName: challenger.name,

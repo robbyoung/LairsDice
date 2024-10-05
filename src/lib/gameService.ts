@@ -133,9 +133,12 @@ export class GameService {
 			};
 		});
 
+		const events = await this.events.popPlayerEvents(playerCode);
+
 		const gameDetails: GameDto = {
 			players: playerDtos,
-			state: game.state
+			state: game.state,
+			events
 		};
 
 		return gameDetails;
@@ -198,28 +201,32 @@ export class GameService {
 
 		const allDice: number[] = game.players.flatMap((player) => player.dice);
 		const matchingDice: number[] = allDice.filter((dice) => dice === game.currentBid?.dice);
-		let losingPlayer: Player;
 
+		const challenger: Player = game.players[game.currentPlayer];
+		let defender: Player;
+
+		let previousPlayerIndex: number = game.currentPlayer;
+		do {
+			previousPlayerIndex = (previousPlayerIndex - 1 + game.players.length) % game.players.length;
+			defender = game.players[previousPlayerIndex];
+		} while (defender.dice.length === 0);
+
+		let losingPlayer: Player;
 		if (matchingDice.length >= game.currentBid.quantity) {
-			losingPlayer = game.players[game.currentPlayer];
+			losingPlayer = challenger;
 		} else {
-			let previousPlayerIndex: number = game.currentPlayer;
-			do {
-				previousPlayerIndex = (previousPlayerIndex - 1 + game.players.length) % game.players.length;
-				losingPlayer = game.players[previousPlayerIndex];
-			} while (losingPlayer.dice.length === 0);
+			losingPlayer = defender;
 		}
 
-		losingPlayer.dice.pop();
-
-		this.events.recordChallengeEvent(
+		await this.events.recordChallengeEvent(
 			game.players,
 			game.currentBid,
-			losingPlayer,
-			losingPlayer, // to fix
-			matchingDice.length >= game.currentBid.quantity
+			challenger,
+			defender,
+			losingPlayer === defender
 		);
 
+		losingPlayer.dice.pop();
 		const remainingPlayers = game.players.filter((player) => player.dice.length > 0);
 
 		if (remainingPlayers.length === 1) {

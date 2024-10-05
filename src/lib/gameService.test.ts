@@ -5,7 +5,7 @@ import { GameState, type Game, type Player } from '../types/types';
 import { Roller } from './roller';
 import type { PlayerDto } from '../types/dtos';
 import { EventService } from './eventService';
-import { EventRepository } from './eventRepository';
+import { EventRepository as InMemoryEventRepository } from './eventRepository';
 
 const MOCK_RANDOM = 'aRandomValue';
 const MOCK_START_PLAYER = 1;
@@ -26,7 +26,7 @@ describe('GameService', () => {
 	beforeEach(() => {
 		repository = new GameRepository();
 		roller = new Roller();
-		events = new EventService(new EventRepository());
+		events = new EventService(new InMemoryEventRepository());
 		service = new GameService(repository, events, roller);
 		savedGame = undefined;
 
