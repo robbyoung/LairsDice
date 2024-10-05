@@ -1,6 +1,6 @@
 import { type Bid } from './types';
 
-export type Event = RoundStartEvent | PeekEvent | ChallengeEvent | BidEvent;
+export type Event = RoundStartEvent | PeekEvent | ChallengeEvent | BidEvent | GameEndEvent;
 
 export enum EventType {
 	RoundStart = 'RoundStart',
@@ -12,7 +12,7 @@ export enum EventType {
 
 export interface RoundStartEvent {
 	type: EventType.RoundStart;
-	roundNumber: number;
+	diceCounts: { name: string; diceCount: number }[];
 }
 
 export interface PeekEvent {
@@ -25,6 +25,8 @@ export interface ChallengeEvent {
 	challengerName: string;
 	defenderName: string;
 	dicePool: { name: string; dice: number[] }[];
+	bid: Bid;
+	challengeSuccess: boolean;
 }
 
 export interface BidEvent {

@@ -1,3 +1,5 @@
-import { describe } from 'vitest';
+import { beforeEach, describe } from 'vitest';
 
-describe.skip('EventService', () => {});
+describe.skip('EventService', () => {
+	beforeEach(async () => {});
+});

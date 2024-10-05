@@ -1,11 +1,13 @@
 import type { GameDto, PlayerDto } from '../types/dtos';
 import { GameState, type Game, type Player } from '../types/types';
+import { eventService, type EventService } from './eventService';
 import { gameRepository, GameRepository } from './gameRepository';
 import { Roller } from './roller';
 
 export class GameService {
 	constructor(
 		private repository: GameRepository,
+		private events: EventService,
 		private roller: Roller
 	) {}
 
@@ -89,6 +91,8 @@ export class GameService {
 		this.chooseStartingPlayer(game);
 		this.updateGameState(GameState.InProgress, game);
 
+		this.events.recordRoundStart(game.players);
+
 		this.repository.saveGame(game);
 	}
 
@@ -165,6 +169,9 @@ export class GameService {
 		}
 
 		game.currentBid = { quantity, dice };
+
+		this.events.recordBidEvent(game.players, game.currentBid, game.players[game.currentPlayer]);
+
 		this.setNextPlayer(game);
 
 		this.repository.saveGame(game);
@@ -205,13 +212,24 @@ export class GameService {
 
 		losingPlayer.dice.pop();
 
+		this.events.recordChallengeEvent(
+			game.players,
+			game.currentBid,
+			losingPlayer,
+			losingPlayer, // to fix
+			matchingDice.length >= game.currentBid.quantity
+		);
+
 		const remainingPlayers = game.players.filter((player) => player.dice.length > 0);
 
 		if (remainingPlayers.length === 1) {
 			game.state = GameState.Finished;
+			this.events.recordGameEndEvent(game.players, remainingPlayers[0].name);
 		} else {
 			this.setNextPlayer(game);
 			this.rollAllDice(game);
+
+			this.events.recordRoundStart(game.players);
 		}
 
 		game.currentBid = undefined;
@@ -256,4 +274,4 @@ export class GameService {
 	}
 }
 
-export const gameService = new GameService(gameRepository, new Roller());
+export const gameService = new GameService(gameRepository, eventService, new Roller());
