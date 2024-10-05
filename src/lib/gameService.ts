@@ -1,11 +1,13 @@
 import type { GameDto, PlayerDto } from '../types/dtos';
 import { GameState, type Game, type Player } from '../types/types';
+import { eventService, type EventService } from './eventService';
 import { gameRepository, GameRepository } from './gameRepository';
 import { Roller } from './roller';
 
 export class GameService {
 	constructor(
 		private repository: GameRepository,
+		private events: EventService,
 		private roller: Roller
 	) {}
 
@@ -89,6 +91,8 @@ export class GameService {
 		this.chooseStartingPlayer(game);
 		this.updateGameState(GameState.InProgress, game);
 
+		this.events.recordRoundStart(game.players);
+
 		this.repository.saveGame(game);
 	}
 
@@ -129,9 +133,12 @@ export class GameService {
 			};
 		});
 
+		const events = await this.events.popPlayerEvents(playerCode);
+
 		const gameDetails: GameDto = {
 			players: playerDtos,
-			state: game.state
+			state: game.state,
+			events
 		};
 
 		return gameDetails;
@@ -165,6 +172,9 @@ export class GameService {
 		}
 
 		game.currentBid = { quantity, dice };
+
+		this.events.recordBidEvent(game.players, game.currentBid, game.players[game.currentPlayer]);
+
 		this.setNextPlayer(game);
 
 		this.repository.saveGame(game);
@@ -191,27 +201,42 @@ export class GameService {
 
 		const allDice: number[] = game.players.flatMap((player) => player.dice);
 		const matchingDice: number[] = allDice.filter((dice) => dice === game.currentBid?.dice);
-		let losingPlayer: Player;
 
+		const challenger: Player = game.players[game.currentPlayer];
+		let defender: Player;
+
+		let previousPlayerIndex: number = game.currentPlayer;
+		do {
+			previousPlayerIndex = (previousPlayerIndex - 1 + game.players.length) % game.players.length;
+			defender = game.players[previousPlayerIndex];
+		} while (defender.dice.length === 0);
+
+		let losingPlayer: Player;
 		if (matchingDice.length >= game.currentBid.quantity) {
-			losingPlayer = game.players[game.currentPlayer];
+			losingPlayer = challenger;
 		} else {
-			let previousPlayerIndex: number = game.currentPlayer;
-			do {
-				previousPlayerIndex = (previousPlayerIndex - 1 + game.players.length) % game.players.length;
-				losingPlayer = game.players[previousPlayerIndex];
-			} while (losingPlayer.dice.length === 0);
+			losingPlayer = defender;
 		}
 
-		losingPlayer.dice.pop();
+		await this.events.recordChallengeEvent(
+			game.players,
+			game.currentBid,
+			challenger,
+			defender,
+			losingPlayer === defender
+		);
 
+		losingPlayer.dice.pop();
 		const remainingPlayers = game.players.filter((player) => player.dice.length > 0);
 
 		if (remainingPlayers.length === 1) {
 			game.state = GameState.Finished;
+			this.events.recordGameEndEvent(game.players, remainingPlayers[0].name);
 		} else {
 			this.setNextPlayer(game);
 			this.rollAllDice(game);
+
+			this.events.recordRoundStart(game.players);
 		}
 
 		game.currentBid = undefined;
@@ -256,4 +281,4 @@ export class GameService {
 	}
 }
 
-export const gameService = new GameService(gameRepository, new Roller());
+export const gameService = new GameService(gameRepository, eventService, new Roller());

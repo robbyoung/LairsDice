@@ -4,6 +4,8 @@ import { GameRepository } from './gameRepository';
 import { GameState, type Game, type Player } from '../types/types';
 import { Roller } from './roller';
 import type { PlayerDto } from '../types/dtos';
+import { EventService } from './eventService';
+import { EventRepository as InMemoryEventRepository } from './eventRepository';
 
 const MOCK_RANDOM = 'aRandomValue';
 const MOCK_START_PLAYER = 1;
@@ -16,13 +18,16 @@ describe('GameService', () => {
 	let saveSpy: MockInstance;
 	let getSpy: MockInstance;
 
+	let events: EventService;
+
 	let roller: Roller;
 	let rollSpy: MockInstance;
 
 	beforeEach(() => {
 		repository = new GameRepository();
 		roller = new Roller();
-		service = new GameService(repository, roller);
+		events = new EventService(new InMemoryEventRepository());
+		service = new GameService(repository, events, roller);
 		savedGame = undefined;
 
 		saveSpy = vi.spyOn(repository, 'saveGame');
@@ -633,7 +638,7 @@ describe('GameService', () => {
 	});
 });
 
-class GameBuilder {
+export class GameBuilder {
 	private game: Game;
 
 	constructor() {
