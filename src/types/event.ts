@@ -1,13 +1,20 @@
 import { type Bid } from './types';
 
-export type Event = RoundStartEvent | PeekEvent | ChallengeEvent | BidEvent | GameEndEvent;
+export type Event =
+	| RoundStartEvent
+	| PeekEvent
+	| ChallengeEvent
+	| BidEvent
+	| GameEndEvent
+	| TurnStartEvent;
 
 export enum EventType {
 	RoundStart = 'RoundStart',
 	Peek = 'Peek',
 	Challenge = 'Challenge',
 	Bid = 'Bid',
-	GameEnd = 'GameEnd'
+	GameEnd = 'GameEnd',
+	TurnStart = 'TurnStart'
 }
 
 export interface RoundStartEvent {
@@ -38,4 +45,8 @@ export interface BidEvent {
 export interface GameEndEvent {
 	type: EventType.GameEnd;
 	winnerName: string;
+}
+
+export interface TurnStartEvent {
+	type: EventType.TurnStart;
 }

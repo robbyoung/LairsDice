@@ -1,5 +1,5 @@
 import type { GameDto, PlayerDto } from '../types/dtos';
-import { GameState, type Game, type Player } from '../types/types';
+import { GameState, type Bid, type Game, type Player } from '../types/types';
 import { eventService, type EventService } from './eventService';
 import { gameRepository, GameRepository } from './gameRepository';
 import { Roller } from './roller';
@@ -27,7 +27,7 @@ export class GameService {
 		return game.code;
 	}
 
-	public async addPlayer(playerName: string, gameCode: string): Promise<string> {
+	public async addPlayer(playerName: string, isHuman: boolean, gameCode: string): Promise<string> {
 		const game: Game | undefined = await this.repository.getGame(gameCode);
 
 		if (!game) {
@@ -46,7 +46,8 @@ export class GameService {
 		const newPlayer: Player = {
 			name: playerName,
 			code: playerCode,
-			dice: startingDice
+			dice: startingDice,
+			isHuman: isHuman
 		};
 
 		if (game.players.length < game.maxPlayers) {
@@ -175,9 +176,7 @@ export class GameService {
 
 		this.events.recordBidEvent(game.players, game.currentBid, game.players[game.currentPlayer]);
 
-		this.setNextPlayer(game);
-
-		this.repository.saveGame(game);
+		this.endTurn(game);
 	}
 
 	public async challengeBid(playerToken: string): Promise<void> {
@@ -233,10 +232,11 @@ export class GameService {
 			game.state = GameState.Finished;
 			this.events.recordGameEndEvent(game.players, remainingPlayers[0].name);
 		} else {
-			this.setNextPlayer(game);
+			this.endTurn(game);
 			this.rollAllDice(game);
 
 			this.events.recordRoundStart(game.players);
+			this.events.recordTurnStartEvent(game.players[game.currentPlayer].code);
 		}
 
 		game.currentBid = undefined;
@@ -270,7 +270,7 @@ export class GameService {
 		});
 	}
 
-	private setNextPlayer(game: Game) {
+	private endTurn(game: Game) {
 		if (game.currentPlayer === undefined) {
 			throw new Error('No current player set');
 		}
@@ -278,6 +278,96 @@ export class GameService {
 		do {
 			game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
 		} while (game.players[game.currentPlayer].dice.length === 0);
+
+		this.repository.saveGame(game);
+
+		const playerToken = this.getPlayerToken(game.players[game.currentPlayer]);
+
+		this.events.recordTurnStartEvent(playerToken);
+
+		if (!game.players[game.currentPlayer].isHuman) {
+			this.playBotTurn(playerToken, game);
+		}
+	}
+
+	private playBotTurn(playerToken: string, game: Game) {
+		if (!game || !game.currentPlayer) {
+			throw new Error('game is undefined');
+		}
+		if (!game.currentBid) {
+			throw new Error('There is no current bid');
+		}
+
+		const playerDice = game.players[game.currentPlayer].dice;
+
+		let numDice = 0;
+		game.players.forEach((player) => {
+			numDice += player.dice.length;
+		});
+		const currentBid = game.currentBid;
+
+		const bestBet: Bid = this.getBestBet(playerDice, currentBid);
+
+		if (this.getChallengeOdds(playerDice, numDice, currentBid) > 0.6) {
+			this.challengeBid(playerToken);
+		} else {
+			this.placeBid(bestBet.quantity, bestBet.dice, playerToken);
+		}
+	}
+
+	private getChallengeOdds(playerDice: number[], numDice: number, currentBid: Bid): number {
+		const playerDiceCount = playerDice.length;
+
+		playerDice.filter((dice) => dice === 1 || dice === currentBid.dice);
+		const numMatchingDice = playerDice.length;
+
+		const numUnknownDice = numDice - (playerDiceCount - numMatchingDice);
+
+		let odds: number = 0.0;
+
+		if (playerDice.length >= currentBid.quantity) {
+			odds = 0;
+		} else if (currentBid.dice !== 1) {
+			odds = numMatchingDice + numUnknownDice * (2 / 6);
+		} else {
+			odds = numMatchingDice + numUnknownDice * (1 / 6);
+		}
+
+		return odds;
+	}
+
+	private getBestBet(playerDice: number[], currentBid: Bid): Bid {
+		const diceFrequency: number[] = new Array(6);
+		playerDice.forEach((dice) => {
+			diceFrequency[dice + 1]++;
+		});
+		for (let i: number = 1; i < diceFrequency.length; i++) {
+			diceFrequency[i] += diceFrequency[0];
+		}
+
+		const highestFrequency = Math.max(...diceFrequency);
+
+		const diceValue: number = diceFrequency.findIndex((value) => value === highestFrequency) + 1;
+
+		const bestBid: Bid = {
+			dice: 0,
+			quantity: 0
+		};
+
+		if (diceValue > currentBid.dice) {
+			bestBid.quantity = currentBid.quantity;
+			bestBid.dice = diceValue;
+		} else {
+			bestBid.quantity = currentBid.quantity + 1;
+			bestBid.dice = diceValue;
+		}
+
+		return bestBid;
+	}
+
+	private getPlayerToken(player: Player): string {
+		const playerToken = `${player.code}-${player.name}`;
+		return playerToken;
 	}
 }
 

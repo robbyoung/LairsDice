@@ -5,7 +5,8 @@ import {
 	type Event,
 	type GameEndEvent,
 	type PeekEvent,
-	type RoundStartEvent
+	type RoundStartEvent,
+	type TurnStartEvent
 } from '../types/event';
 import type { Bid, Player } from '../types/types';
 import { eventRepository, type EventRepository } from './eventRepository';
@@ -87,6 +88,14 @@ export class EventService {
 				await this.repository.savePlayerEvent(player.code, event);
 			}
 		}
+	}
+
+	public async recordTurnStartEvent(playerCode: string): Promise<void> {
+		const event: TurnStartEvent = {
+			type: EventType.TurnStart
+		};
+
+		await this.repository.savePlayerEvent(playerCode, event);
 	}
 }
 
