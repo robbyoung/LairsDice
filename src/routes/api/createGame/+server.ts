@@ -1,7 +1,12 @@
 import { gameService } from '$lib/gameService';
-import { json } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 
 export async function POST() {
-	const code = gameService.createGame();
-	return json({ result: code }, { status: 200 });
+	try {
+		const code = await gameService.createGame();
+		return json({ gameCode: code }, { status: 200 });
+	} catch (e) {
+		const message: string = e instanceof Error ? e.message : 'unknown error';
+		return error(500, message);
+	}
 }

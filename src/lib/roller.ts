@@ -10,6 +10,6 @@ export class Roller {
 	}
 
 	randomNumber(max: number): number {
-		return Math.floor(Math.random() * max) + 1;
+		return Math.floor(Math.random() * max);
 	}
 }
