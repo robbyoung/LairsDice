@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { EventService } from './eventService';
-import { GameRepository as InMemoryGameRepository } from './gameRepository';
-import { EventRepository as InMemoryEventRepository } from './eventRepository';
+import { GameInMemoryRepository as InMemoryGameRepository } from './gameInMemoryRepository';
+import { EventInMemoryRepository as InMemoryEventRepository } from './eventInMemoryRepository';
 import { GameService } from './gameService';
 import { Roller } from './roller';
 import { GameState } from '../types/types';

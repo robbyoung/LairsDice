@@ -1,12 +1,13 @@
 import type { GameDto, PlayerDto } from '../types/dtos';
+import type { IGameRepository } from '../types/interfaces';
 import { GameState, type Game, type Player } from '../types/types';
 import { eventService, type EventService } from './eventService';
-import { gameRepository, GameRepository } from './gameRepository';
+import { gameRepository } from './gameInMemoryRepository';
 import { Roller } from './roller';
 
 export class GameService {
 	constructor(
-		private repository: GameRepository,
+		private repository: IGameRepository,
 		private events: EventService,
 		private roller: Roller
 	) {}

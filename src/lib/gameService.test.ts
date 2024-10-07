@@ -1,18 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { GameService } from './gameService';
-import { GameRepository } from './gameRepository';
+import { GameInMemoryRepository } from './gameInMemoryRepository';
 import { GameState, type Game, type Player } from '../types/types';
 import { Roller } from './roller';
 import type { PlayerDto } from '../types/dtos';
 import { EventService } from './eventService';
-import { EventRepository as InMemoryEventRepository } from './eventRepository';
+import { EventInMemoryRepository as InMemoryEventRepository } from './eventInMemoryRepository';
 
 const MOCK_RANDOM = 'aRandomValue';
 const MOCK_START_PLAYER = 1;
 const MOCK_DICE = [1, 2, 3, 4, 5, 6];
 
 describe('GameService', () => {
-	let repository: GameRepository;
+	let repository: GameInMemoryRepository;
 	let service: GameService;
 	let savedGame: Game | undefined;
 	let saveSpy: MockInstance;
@@ -24,7 +24,7 @@ describe('GameService', () => {
 	let rollSpy: MockInstance;
 
 	beforeEach(() => {
-		repository = new GameRepository();
+		repository = new GameInMemoryRepository();
 		roller = new Roller();
 		events = new EventService(new InMemoryEventRepository());
 		service = new GameService(repository, events, roller);

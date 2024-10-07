@@ -1,6 +1,7 @@
 import { type Event } from '../types/event';
+import type { IEventRepository } from '../types/interfaces';
 
-export class EventRepository {
+export class EventInMemoryRepository implements IEventRepository {
 	private playerEvents: { [playerCode: string]: Event[] };
 
 	constructor() {
@@ -24,4 +25,4 @@ export class EventRepository {
 	}
 }
 
-export const eventRepository = new EventRepository();
+export const eventRepository = new EventInMemoryRepository();
