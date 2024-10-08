@@ -1,7 +1,12 @@
-import { type CreateTableOutput } from 'aws-sdk/clients/dynamodb';
+import {
+	DynamoDB,
+	type CreateTableInput,
+	type GetItemInput,
+	type GetItemOutput,
+	type PutItemInput
+} from '@aws-sdk/client-dynamodb';
 import type { IGameRepository } from '../types/interfaces';
 import { type Game } from '../types/types';
-import { DynamoDB } from 'aws-sdk';
 
 const TableName = 'LIARSDICE_GAMES';
 
@@ -15,9 +20,9 @@ export class GameDynamoDbRepository implements IGameRepository {
 	}
 
 	public async getGame(code: string): Promise<Game | undefined> {
-		this.ensureTableExists();
+		await this.ensureTableExists();
 
-		const req: DynamoDB.Types.GetItemInput = {
+		const req: GetItemInput = {
 			TableName,
 			Key: {
 				GAME_CODE: {
@@ -27,7 +32,7 @@ export class GameDynamoDbRepository implements IGameRepository {
 			ProjectionExpression: 'CONTENT'
 		};
 
-		const response = await new Promise<DynamoDB.Types.GetItemOutput | undefined>((resolve) => {
+		const response = await new Promise<GetItemOutput | undefined>((resolve) => {
 			this.ddbClient.getItem(req, (err, data) => {
 				if (err) {
 					resolve(undefined);
@@ -47,7 +52,26 @@ export class GameDynamoDbRepository implements IGameRepository {
 	}
 
 	public async saveGame(game: Game): Promise<void> {
-		throw new Error('Method not implemented.');
+		await this.ensureTableExists();
+
+		const stringContent = JSON.stringify(game);
+		const req: PutItemInput = {
+			TableName,
+			Item: {
+				GAME_CODE: { S: game.code },
+				CONTENT: { S: stringContent }
+			}
+		};
+
+		await new Promise<void>((resolve, reject) => {
+			this.ddbClient.putItem(req, (err) => {
+				if (err) {
+					reject(err);
+				}
+
+				resolve();
+			});
+		});
 	}
 
 	private async ensureTableExists(): Promise<void> {
@@ -70,13 +94,13 @@ export class GameDynamoDbRepository implements IGameRepository {
 		this.tableExists = true;
 	}
 
-	private async createTable(): Promise<CreateTableOutput> {
-		const params: DynamoDB.Types.CreateTableInput = {
+	private async createTable(): Promise<void> {
+		const params: CreateTableInput = {
 			TableName,
 			KeySchema: [
 				{
 					AttributeName: 'GAME_CODE',
-					KeyType: 'String'
+					KeyType: 'HASH'
 				}
 			],
 			AttributeDefinitions: [
@@ -95,13 +119,13 @@ export class GameDynamoDbRepository implements IGameRepository {
 			}
 		};
 
-		return new Promise<CreateTableOutput>((resolve, reject) => {
-			this.ddbClient.createTable(params, (err, data) => {
+		return new Promise<void>((resolve, reject) => {
+			this.ddbClient.createTable(params, (err) => {
 				if (err) {
 					reject(err);
 				}
 
-				resolve(data);
+				resolve();
 			});
 		});
 	}

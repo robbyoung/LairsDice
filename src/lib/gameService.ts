@@ -2,7 +2,7 @@ import type { GameDto, PlayerDto } from '../types/dtos';
 import type { IGameRepository } from '../types/interfaces';
 import { GameState, type Game, type Player } from '../types/types';
 import { eventService, type EventService } from './eventService';
-import { gameRepository } from './gameInMemoryRepository';
+import { GameDynamoDbRepository } from './gameDynamoDbRepository';
 import { Roller } from './roller';
 
 export class GameService {
@@ -282,4 +282,8 @@ export class GameService {
 	}
 }
 
-export const gameService = new GameService(gameRepository, eventService, new Roller());
+export const gameService = new GameService(
+	new GameDynamoDbRepository(),
+	eventService,
+	new Roller()
+);
