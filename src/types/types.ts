@@ -4,8 +4,11 @@ export enum GameState {
 	Finished = 'Finished'
 }
 
-export enum BotDifficulty {
-	Normal = 'Normal'
+export enum PlayerDifficulty {
+	Human = 'Human',
+	Easy = 'Easy',
+	Medium = 'Medium',
+	Hard = 'Hard'
 }
 
 export type Bid = {
@@ -17,7 +20,7 @@ export type Player = {
 	name: string;
 	code: string;
 	dice: number[];
-	isHuman: boolean;
+	difficulty: PlayerDifficulty;
 };
 
 export type Game = {

@@ -4,7 +4,7 @@ import { GameRepository as InMemoryGameRepository } from './gameRepository';
 import { EventRepository as InMemoryEventRepository } from './eventRepository';
 import { GameService } from './gameService';
 import { Roller } from './roller';
-import { GameState } from '../types/types';
+import { GameState, PlayerDifficulty } from '../types/types';
 import { GameBuilder } from './gameService.test';
 import {
 	EventType,
@@ -36,9 +36,9 @@ describe('EventService', () => {
 		it('creates a RoundStart event after the game has started', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.Lobby)
-				.addPlayer('playerOne', 'p1', [1, 1, 1])
-				.addPlayer('playerTwo', 'p2', [1, 1, 1])
-				.addPlayer('playerThree', 'p3', [1, 1, 1])
+				.addPlayer('playerOne', 'p1', [1, 1, 1], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 1, 1], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 1, 1], PlayerDifficulty.Human)
 				.build();
 			getSpy.mockResolvedValue(initialState);
 
@@ -59,9 +59,9 @@ describe('EventService', () => {
 		it('creates a RoundStart event and a Challenge event after a successful challenge', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [2, 2])
-				.addPlayer('playerTwo', 'p2', [5])
-				.addPlayer('playerThree', 'p3', [6, 2, 2])
+				.addPlayer('playerOne', 'p1', [2, 2], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [5], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [6, 2, 2], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(5, 2)
 				.build();
@@ -96,9 +96,9 @@ describe('EventService', () => {
 		it('creates a RoundStart event and a Challenge event after a failed challenge', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 1, 1])
-				.addPlayer('playerTwo', 'p2', [1, 1, 1])
-				.addPlayer('playerThree', 'p3', [1, 1, 1])
+				.addPlayer('playerOne', 'p1', [1, 1, 1], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 1, 1], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 1, 1], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(3, 1)
 				.build();
@@ -133,9 +133,9 @@ describe('EventService', () => {
 		it('creates a GameEnd event and a Challenge event after a game-ending challenge', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [2, 2])
-				.addPlayer('playerTwo', 'p2', [1])
-				.addPlayer('playerThree', 'p3', [])
+				.addPlayer('playerOne', 'p1', [2, 2], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [], PlayerDifficulty.Human)
 				.setCurrentPlayer(1)
 				.setCurrentBid(2, 2)
 				.build();
@@ -166,9 +166,9 @@ describe('EventService', () => {
 		it('creates a Bid event after a player bids', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [2, 2])
-				.addPlayer('playerTwo', 'p2', [1])
-				.addPlayer('playerThree', 'p3', [6, 1, 2])
+				.addPlayer('playerOne', 'p1', [2, 2], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [6, 1, 2], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(2, 2)
 				.build();
@@ -189,9 +189,9 @@ describe('EventService', () => {
 		it('builds up events until the player reads them', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [2, 2, 1])
-				.addPlayer('playerTwo', 'p2', [1, 1, 1])
-				.addPlayer('playerThree', 'p3', [6, 1, 2])
+				.addPlayer('playerOne', 'p1', [2, 2, 1], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 1, 1], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [6, 1, 2], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.build();
 			getSpy.mockResolvedValue(initialState);

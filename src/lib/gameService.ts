@@ -1,5 +1,5 @@
 import type { GameDto, PlayerDto } from '../types/dtos';
-import { GameState, type Bid, type Game, type Player } from '../types/types';
+import { GameState, PlayerDifficulty, type Bid, type Game, type Player } from '../types/types';
 import { eventService, type EventService } from './eventService';
 import { gameRepository, GameRepository } from './gameRepository';
 import { Roller } from './roller';
@@ -27,7 +27,11 @@ export class GameService {
 		return game.code;
 	}
 
-	public async addPlayer(playerName: string, isHuman: boolean, gameCode: string): Promise<string> {
+	public async addPlayer(
+		playerName: string,
+		difficulty: PlayerDifficulty,
+		gameCode: string
+	): Promise<string> {
 		const game: Game | undefined = await this.repository.getGame(gameCode);
 
 		if (!game) {
@@ -47,7 +51,7 @@ export class GameService {
 			name: playerName,
 			code: playerCode,
 			dice: startingDice,
-			isHuman: isHuman
+			difficulty: difficulty
 		};
 
 		if (game.players.length < game.maxPlayers) {
@@ -285,7 +289,10 @@ export class GameService {
 
 		this.events.recordTurnStartEvent(playerToken);
 
-		if (!game.players[game.currentPlayer].isHuman) {
+		if (
+			game.players[game.currentPlayer] &&
+			game.players[game.currentPlayer].difficulty !== PlayerDifficulty.Human
+		) {
 			this.playBotTurn(playerToken, game);
 		}
 	}
@@ -306,28 +313,94 @@ export class GameService {
 		});
 		const currentBid = game.currentBid;
 
-		const bestBet: Bid = this.getBestBet(playerDice, currentBid);
+		const { potentialBids, potentialBidValues } = this.getPotentialBids(
+			playerDice,
+			numDice,
+			currentBid
+		);
 
-		if (this.getChallengeOdds(playerDice, numDice, currentBid) > 0.6) {
-			this.challengeBid(playerToken);
-		} else {
-			this.placeBid(bestBet.quantity, bestBet.dice, playerToken);
+		const bot = game.players[game.currentPlayer];
+
+		if (bot.difficulty === PlayerDifficulty.Easy) {
+			const challengeBid: boolean = Math.random() >= 0.75;
+			if (challengeBid) {
+				this.challengeBid(playerToken);
+			} else {
+				const bidIndex = this.getRandomInt(0, 5);
+				this.placeBid(potentialBids[bidIndex].quantity, potentialBids[bidIndex].dice, playerToken);
+			}
+		} else if (bot.difficulty === PlayerDifficulty.Medium) {
+			const currentBidOdds = this.calculateBidOdds(playerDice, numDice, currentBid);
+			const highestBidOdds = Math.max(...potentialBidValues);
+			const highestOddsIndex = potentialBidValues.indexOf(highestBidOdds);
+			const fiveLowestOdds: number[] = potentialBidValues.splice(highestOddsIndex, 1);
+			const secondHighestOdds = Math.max(...fiveLowestOdds);
+			const secondHighestOddsIndex = fiveLowestOdds.indexOf(secondHighestOdds);
+
+			if (highestBidOdds > currentBidOdds) {
+				const behaviour = this.getRandomInt(1, 10);
+				if (behaviour < 3)
+					this.placeBid(
+						potentialBids[secondHighestOddsIndex].quantity,
+						potentialBids[secondHighestOddsIndex].dice,
+						playerToken
+					);
+				else if (behaviour > 3 && behaviour < 8) {
+					this.placeBid(
+						potentialBids[highestOddsIndex].quantity,
+						potentialBids[highestOddsIndex].dice,
+						playerToken
+					);
+				} else {
+					this.challengeBid(playerToken);
+				}
+			} else {
+				const behaviour = this.getRandomInt(1, 10);
+				if (behaviour < 7) {
+					this.challengeBid(playerToken);
+				} else if (behaviour === 8) {
+					this.placeBid(
+						potentialBids[secondHighestOddsIndex].quantity,
+						potentialBids[secondHighestOddsIndex].dice,
+						playerToken
+					);
+				} else {
+					this.placeBid(
+						potentialBids[highestOddsIndex].quantity,
+						potentialBids[highestOddsIndex].dice,
+						playerToken
+					);
+				}
+			}
+		} else if (bot.difficulty === PlayerDifficulty.Hard) {
+			const currentBidOdds = this.calculateBidOdds(playerDice, numDice, currentBid);
+			const highestBidOdds = Math.max(...potentialBidValues);
+			if (highestBidOdds > currentBidOdds) {
+				const highestOddsIndex = potentialBidValues.indexOf(highestBidOdds);
+				this.placeBid(
+					potentialBids[highestOddsIndex].quantity,
+					potentialBids[highestOddsIndex].dice,
+					playerToken
+				);
+			} else {
+				this.challengeBid(playerToken);
+			}
 		}
 	}
 
-	private getChallengeOdds(playerDice: number[], numDice: number, currentBid: Bid): number {
+	private calculateBidOdds(playerDice: number[], numDice: number, bid: Bid): number {
 		const playerDiceCount = playerDice.length;
 
-		playerDice.filter((dice) => dice === 1 || dice === currentBid.dice);
+		playerDice.filter((dice) => dice === 1 || dice === bid.dice);
 		const numMatchingDice = playerDice.length;
 
 		const numUnknownDice = numDice - (playerDiceCount - numMatchingDice);
 
 		let odds: number = 0.0;
 
-		if (playerDice.length >= currentBid.quantity) {
+		if (playerDice.length >= bid.quantity) {
 			odds = 0;
-		} else if (currentBid.dice !== 1) {
+		} else if (bid.dice !== 1) {
 			odds = numMatchingDice + numUnknownDice * (2 / 6);
 		} else {
 			odds = numMatchingDice + numUnknownDice * (1 / 6);
@@ -336,38 +409,55 @@ export class GameService {
 		return odds;
 	}
 
-	private getBestBet(playerDice: number[], currentBid: Bid): Bid {
+	private getPotentialBids(
+		playerDice: number[],
+		numDice: number,
+		currentBid: Bid
+	): { potentialBids: Bid[]; potentialBidValues: number[] } {
 		const diceFrequency: number[] = new Array(6);
+
+		// Find the frequency of each dice value.
 		playerDice.forEach((dice) => {
-			diceFrequency[dice + 1]++;
+			diceFrequency[dice - 1]++;
 		});
+
+		// Add the number of '1's (wild dice) to each dice frequency (except for the '1's)
 		for (let i: number = 1; i < diceFrequency.length; i++) {
 			diceFrequency[i] += diceFrequency[0];
 		}
 
-		const highestFrequency = Math.max(...diceFrequency);
+		const potentialBids: Bid[] = [];
+		const potentialBidValues: number[] = [];
 
-		const diceValue: number = diceFrequency.findIndex((value) => value === highestFrequency) + 1;
-
-		const bestBid: Bid = {
-			dice: 0,
-			quantity: 0
-		};
-
-		if (diceValue > currentBid.dice) {
-			bestBid.quantity = currentBid.quantity;
-			bestBid.dice = diceValue;
-		} else {
-			bestBid.quantity = currentBid.quantity + 1;
-			bestBid.dice = diceValue;
+		for (let i: number = 0; i < diceFrequency.length; i++) {
+			let potentialBid: Bid;
+			if (i + 1 > currentBid.dice) {
+				potentialBid = {
+					quantity: currentBid.quantity,
+					dice: i + 1
+				};
+			} else {
+				potentialBid = {
+					quantity: currentBid.quantity + 1,
+					dice: i + 1
+				};
+			}
+			potentialBids.push(potentialBid);
+			potentialBidValues.push(this.calculateBidOdds(playerDice, numDice, potentialBid));
 		}
 
-		return bestBid;
+		return { potentialBids, potentialBidValues };
 	}
 
 	private getPlayerToken(player: Player): string {
 		const playerToken = `${player.code}-${player.name}`;
 		return playerToken;
+	}
+
+	private getRandomInt(min: number, max: number): number {
+		min = Math.ceil(min);
+		max = Math.floor(max);
+		return Math.floor(Math.random() * (max - min + 1)) + min;
 	}
 }
 

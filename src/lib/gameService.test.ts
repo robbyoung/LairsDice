@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { GameService } from './gameService';
 import { GameRepository } from './gameRepository';
-import { GameState, type Game, type Player } from '../types/types';
+import { GameState, PlayerDifficulty, type Game, type Player } from '../types/types';
 import { Roller } from './roller';
 import type { PlayerDto } from '../types/dtos';
 import { EventService } from './eventService';
@@ -64,11 +64,15 @@ describe('GameService', () => {
 			const initialState = new GameBuilder().setState(GameState.Lobby).build();
 			getSpy.mockResolvedValue(initialState);
 
-			const returnToken = await service.addPlayer('aName', true, initialState.code);
+			const returnToken = await service.addPlayer(
+				'aName',
+				PlayerDifficulty.Human,
+				initialState.code
+			);
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.Lobby)
-				.addPlayer('aName', MOCK_RANDOM, [0, 0, 0, 0, 0, 0])
+				.addPlayer('aName', MOCK_RANDOM, [0, 0, 0, 0, 0, 0], PlayerDifficulty.Human)
 				.build();
 			expect(savedGame).toStrictEqual(expectedState);
 			expect(returnToken, 'returns player token').toBe(`${MOCK_RANDOM}-${MOCK_RANDOM}`);
@@ -78,7 +82,8 @@ describe('GameService', () => {
 			const initialState = new GameBuilder().setState(GameState.Lobby).fillRemainingSeats().build();
 			getSpy.mockResolvedValue(initialState);
 
-			const func = async () => await service.addPlayer('aName', true, initialState.code);
+			const func = async () =>
+				await service.addPlayer('aName', PlayerDifficulty.Human, initialState.code);
 
 			expect(func).rejects.toThrowError();
 		});
@@ -90,13 +95,14 @@ describe('GameService', () => {
 				.build();
 			getSpy.mockResolvedValue(initialState);
 
-			const func = async () => await service.addPlayer('aName', true, initialState.code);
+			const func = async () =>
+				await service.addPlayer('aName', PlayerDifficulty.Human, initialState.code);
 
 			expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the game does not exist', async () => {
-			const func = async () => await service.addPlayer('aName', true, 'aBadCode');
+			const func = async () => await service.addPlayer('aName', PlayerDifficulty.Human, 'aBadCode');
 
 			expect(func).rejects.toThrowError();
 		});
@@ -106,8 +112,8 @@ describe('GameService', () => {
 		it('returns a list of player details', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.Lobby)
-				.addPlayer('player one', 'p1', [])
-				.addPlayer('player two', 'p2', [])
+				.addPlayer('player one', 'p1', [], PlayerDifficulty.Human)
+				.addPlayer('player two', 'p2', [], PlayerDifficulty.Human)
 				.build();
 			getSpy.mockResolvedValue(initialState);
 
@@ -130,9 +136,9 @@ describe('GameService', () => {
 		it('can be used by p1 to start a game with a full lobby', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.Lobby)
-				.addPlayer('playerOne', 'p1', [])
-				.addPlayer('playerTwo', 'p2', [])
-				.addPlayer('playerThree', 'p3', [])
+				.addPlayer('playerOne', 'p1', [], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [], PlayerDifficulty.Human)
 				.build();
 			getSpy.mockResolvedValue(initialState);
 
@@ -142,9 +148,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', MOCK_DICE)
-				.addPlayer('playerTwo', 'p2', MOCK_DICE)
-				.addPlayer('playerThree', 'p3', MOCK_DICE)
+				.addPlayer('playerOne', 'p1', MOCK_DICE, PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', MOCK_DICE, PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', MOCK_DICE, PlayerDifficulty.Human)
 				.setCurrentPlayer(MOCK_START_PLAYER)
 				.build();
 			expect(savedGame).toStrictEqual(expectedState);
@@ -170,7 +176,7 @@ describe('GameService', () => {
 		it('throws if the lobby is not full', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.Lobby)
-				.addPlayer('aName', 'aCode', [])
+				.addPlayer('aName', 'aCode', [], PlayerDifficulty.Human)
 				.build();
 			getSpy.mockResolvedValue(initialState);
 
@@ -185,9 +191,9 @@ describe('GameService', () => {
 		it('can place a higher-quantity bid for the active player', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4])
-				.addPlayer('playerTwo', 'p2', [1, 2])
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5])
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(1)
 				.setCurrentBid(2, 2)
 				.build();
@@ -198,9 +204,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4])
-				.addPlayer('playerTwo', 'p2', [1, 2])
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5])
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.setCurrentBid(3, 2)
 				.build();
@@ -210,9 +216,9 @@ describe('GameService', () => {
 		it('can place a higher-dice bid for the active player', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4])
-				.addPlayer('playerTwo', 'p2', [1, 2])
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5])
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(2, 2)
 				.build();
@@ -223,9 +229,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(1)
 				.setCurrentBid(2, 4)
 				.build();
@@ -235,9 +241,9 @@ describe('GameService', () => {
 		it('can place anything as the first bid', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.build();
 			getSpy.mockResolvedValue(initialState);
@@ -247,9 +253,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(1, 3)
 				.build();
@@ -259,9 +265,9 @@ describe('GameService', () => {
 		it('will skip a player if they have no dice left', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('bobby no-dice', 'bnd', [], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('bobby no-dice', 'bnd', [], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.setCurrentBid(1, 1)
 				.build();
@@ -272,9 +278,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('bobby no-dice', 'bnd', [], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('bobby no-dice', 'bnd', [], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(1)
 				.setCurrentBid(1, 3)
 				.build();
@@ -284,9 +290,9 @@ describe('GameService', () => {
 		it('throws if the game has not started', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.Lobby)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(4, 4)
 				.build();
@@ -301,9 +307,9 @@ describe('GameService', () => {
 		it('throws if the game is finished', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.Finished)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(2, 2)
 				.build();
@@ -318,9 +324,9 @@ describe('GameService', () => {
 		it('throws if the bid is the same as the previous bid', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(2, 2)
 				.build();
@@ -335,9 +341,9 @@ describe('GameService', () => {
 		it('throws if the bid quantity decreases', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(2, 2)
 				.build();
@@ -352,9 +358,9 @@ describe('GameService', () => {
 		it('throws if the bid is invalid', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(2, 2)
 				.build();
@@ -369,9 +375,9 @@ describe('GameService', () => {
 		it('throws if called by anyone but the active player', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.setCurrentBid(2, 2)
 				.build();
@@ -388,9 +394,9 @@ describe('GameService', () => {
 		it('can resolve a challenge that the challenger wins', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [1, 2], true)
-				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [1, 2, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [1, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [1, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(1)
 				.setCurrentBid(5, 2)
 				.build();
@@ -401,9 +407,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', MOCK_DICE, true)
-				.addPlayer('playerTwo', 'p2', MOCK_DICE, true)
-				.addPlayer('playerThree', 'p3', MOCK_DICE, true)
+				.addPlayer('playerOne', 'p1', MOCK_DICE, PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', MOCK_DICE, PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', MOCK_DICE, PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.build();
 			expect(savedGame).toStrictEqual(expectedState);
@@ -415,9 +421,9 @@ describe('GameService', () => {
 		it('can resolve a challenge that the defender wins', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [2, 2, 2], true)
-				.addPlayer('playerTwo', 'p2', [2, 2], true)
-				.addPlayer('playerThree', 'p3', [2, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [2, 2, 2], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [2, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [2, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.setCurrentBid(5, 2)
 				.build();
@@ -428,9 +434,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', MOCK_DICE, true)
-				.addPlayer('playerTwo', 'p2', MOCK_DICE, true)
-				.addPlayer('playerThree', 'p3', MOCK_DICE, true)
+				.addPlayer('playerOne', 'p1', MOCK_DICE, PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', MOCK_DICE, PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', MOCK_DICE, PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.build();
 			expect(savedGame).toStrictEqual(expectedState);
@@ -442,9 +448,9 @@ describe('GameService', () => {
 		it('can resolve a challenger win with a skipped player', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [2, 2, 2], true)
-				.addPlayer('playerTwo', 'p2', [], true)
-				.addPlayer('playerThree', 'p3', [2, 2, 3, 4, 5], true)
+				.addPlayer('playerOne', 'p1', [2, 2, 2], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [2, 2, 3, 4, 5], PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.setCurrentBid(20, 2)
 				.build();
@@ -455,9 +461,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', MOCK_DICE, true)
-				.addPlayer('playerTwo', 'p2', MOCK_DICE, true)
-				.addPlayer('playerThree', 'p3', MOCK_DICE, true)
+				.addPlayer('playerOne', 'p1', MOCK_DICE, PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', MOCK_DICE, PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', MOCK_DICE, PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.build();
 			expect(savedGame).toStrictEqual(expectedState);
@@ -469,9 +475,9 @@ describe('GameService', () => {
 		it('ends the game if only one player has dice left after the challenge', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [], true)
-				.addPlayer('playerTwo', 'p2', [5], true)
-				.addPlayer('playerThree', 'p3', [4, 4, 3], true)
+				.addPlayer('playerOne', 'p1', [], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [5], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [4, 4, 3], PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.setCurrentBid(3, 4)
 				.build();
@@ -482,9 +488,9 @@ describe('GameService', () => {
 
 			const expectedState = new GameBuilder()
 				.setState(GameState.Finished)
-				.addPlayer('playerOne', 'p1', [], true)
-				.addPlayer('playerTwo', 'p2', [], true)
-				.addPlayer('playerThree', 'p3', [4, 4, 3], true)
+				.addPlayer('playerOne', 'p1', [], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [4, 4, 3], PlayerDifficulty.Human)
 				.setCurrentPlayer(2)
 				.build();
 			expect(savedGame).toStrictEqual(expectedState);
@@ -541,9 +547,9 @@ describe('GameService', () => {
 		it('returns the game state relative to the calling player', async () => {
 			const initialState = new GameBuilder()
 				.setState(GameState.InProgress)
-				.addPlayer('playerOne', 'p1', [5, 3, 3, 4], true)
-				.addPlayer('playerTwo', 'p2', [2, 2], true)
-				.addPlayer('playerThree', 'p3', [4, 4, 3], true)
+				.addPlayer('playerOne', 'p1', [5, 3, 3, 4], PlayerDifficulty.Human)
+				.addPlayer('playerTwo', 'p2', [2, 2], PlayerDifficulty.Human)
+				.addPlayer('playerThree', 'p3', [4, 4, 3], PlayerDifficulty.Human)
 				.setCurrentPlayer(0)
 				.setCurrentBid(3, 4)
 				.build();
@@ -577,9 +583,9 @@ describe('GameService', () => {
 		rollSpy.mockImplementation((quantity) => Array.from(Array(quantity), () => 1));
 
 		const gameCode = await service.createGame();
-		const p1Code = await service.addPlayer('playerOne', true, gameCode);
-		const p2Code = await service.addPlayer('playerTwo', true, gameCode);
-		const p3Code = await service.addPlayer('playerThree', true, gameCode);
+		const p1Code = await service.addPlayer('playerOne', PlayerDifficulty.Human, gameCode);
+		const p2Code = await service.addPlayer('playerTwo', PlayerDifficulty.Human, gameCode);
+		const p3Code = await service.addPlayer('playerThree', PlayerDifficulty.Human, gameCode);
 		await service.startGame(p1Code);
 
 		// round 1: p2 starts and loses die
@@ -629,9 +635,9 @@ describe('GameService', () => {
 
 		const expectedState = new GameBuilder()
 			.setState(GameState.Finished)
-			.addPlayer('playerOne', MOCK_RANDOM, [], true)
-			.addPlayer('playerTwo', MOCK_RANDOM, [], true)
-			.addPlayer('playerThree', MOCK_RANDOM, [1, 1, 1, 1, 1], true)
+			.addPlayer('playerOne', MOCK_RANDOM, [], PlayerDifficulty.Human)
+			.addPlayer('playerTwo', MOCK_RANDOM, [], PlayerDifficulty.Human)
+			.addPlayer('playerThree', MOCK_RANDOM, [1, 1, 1, 1, 1], PlayerDifficulty.Human)
 			.setCurrentPlayer(2)
 			.build();
 		expect(mockStore.savedGame).toStrictEqual(expectedState);
@@ -659,12 +665,12 @@ export class GameBuilder {
 		return this;
 	}
 
-	addPlayer(name: string, code: string, dice: number[], isHuman: boolean): GameBuilder {
+	addPlayer(name: string, code: string, dice: number[], difficulty: PlayerDifficulty): GameBuilder {
 		const player: Player = {
 			code,
 			name,
 			dice,
-			isHuman
+			difficulty
 		};
 		this.game.players.push(player);
 
@@ -678,7 +684,7 @@ export class GameBuilder {
 				name: `Player ${num}`,
 				code: `p${num}`,
 				dice: [],
-				isHuman: true
+				difficulty: PlayerDifficulty.Human
 			};
 			this.game.players.push(player);
 		}
