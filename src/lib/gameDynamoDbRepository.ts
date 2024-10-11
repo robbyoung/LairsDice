@@ -44,7 +44,6 @@ export class GameDynamoDbRepository implements IGameRepository {
 	}
 
 	public async saveGame(game: Game): Promise<void> {
-		console.dir(game);
 		const req = new PutCommand({
 			TableName,
 			Item: {

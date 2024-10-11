@@ -56,7 +56,7 @@ export class GameService {
 			throw new Error('max player cap check failed');
 		}
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 
 		return `${gameCode}-${playerCode}`;
 	}
@@ -94,7 +94,7 @@ export class GameService {
 
 		this.events.recordRoundStart(game.players);
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 	}
 
 	public async getGame(playerToken: string): Promise<GameDto> {
@@ -178,7 +178,7 @@ export class GameService {
 
 		this.setNextPlayer(game);
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 	}
 
 	public async challengeBid(playerToken: string): Promise<void> {
@@ -242,7 +242,7 @@ export class GameService {
 
 		game.currentBid = undefined;
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 	}
 
 	public generateCode() {
