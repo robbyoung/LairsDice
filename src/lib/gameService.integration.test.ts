@@ -10,7 +10,7 @@ import { EventDynamoDbRepository } from './eventDynamoDbRepository';
 
 const MOCK_START_PLAYER = 1;
 
-describe.only('[Integration] GameService with DynamoDB', () => {
+describe.skip('[Integration] GameService with DynamoDB', () => {
 	let repository: GameDynamoDbRepository;
 	let service: GameService;
 

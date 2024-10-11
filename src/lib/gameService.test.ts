@@ -80,7 +80,7 @@ describe('GameService', () => {
 
 			const func = async () => await service.addPlayer('aName', initialState.code);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the game is in progress', async () => {
@@ -92,13 +92,13 @@ describe('GameService', () => {
 
 			const func = async () => await service.addPlayer('aName', initialState.code);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the game does not exist', async () => {
 			const func = async () => await service.addPlayer('aName', 'aBadCode');
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 	});
 
@@ -122,7 +122,7 @@ describe('GameService', () => {
 			const badToken = `aBadGameCode-aBadPlayerCode`;
 			const func = async () => await service.getPlayers(badToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 	});
 
@@ -154,7 +154,7 @@ describe('GameService', () => {
 			const badToken = `aBadGameCode-aBadPlayerCode`;
 			const func = async () => await service.startGame(badToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the player is not p1', async () => {
@@ -164,7 +164,7 @@ describe('GameService', () => {
 			const playerTwoToken = `${initialState.code}-${initialState.players[1].code}`;
 			const func = async () => await service.startGame(playerTwoToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the lobby is not full', async () => {
@@ -177,7 +177,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.startGame(playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 	});
 
@@ -295,7 +295,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.placeBid(5, 4, playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the game is finished', async () => {
@@ -312,7 +312,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.placeBid(2, 4, playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the bid is the same as the previous bid', async () => {
@@ -329,7 +329,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.placeBid(2, 2, playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the bid quantity decreases', async () => {
@@ -346,7 +346,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.placeBid(1, 2, playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the bid is invalid', async () => {
@@ -363,7 +363,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.placeBid(2, 7, playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if called by anyone but the active player', async () => {
@@ -380,7 +380,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.placeBid(3, 3, playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 	});
 
@@ -503,7 +503,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.challengeBid(playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if the game is finished', async () => {
@@ -518,7 +518,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.challengeBid(playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 
 		it('throws if called by anyone but the active player', async () => {
@@ -533,7 +533,7 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-${initialState.players[0].code}`;
 			const func = async () => await service.challengeBid(playerOneToken);
 
-			expect(func).rejects.toThrowError();
+			await expect(func).rejects.toThrowError();
 		});
 	});
 

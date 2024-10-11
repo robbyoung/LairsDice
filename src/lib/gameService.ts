@@ -92,7 +92,7 @@ export class GameService {
 		this.chooseStartingPlayer(game);
 		this.updateGameState(GameState.InProgress, game);
 
-		this.events.recordRoundStart(game.players);
+		await this.events.recordRoundStart(game.players);
 
 		await this.repository.saveGame(game);
 	}
@@ -174,7 +174,11 @@ export class GameService {
 
 		game.currentBid = { quantity, dice };
 
-		this.events.recordBidEvent(game.players, game.currentBid, game.players[game.currentPlayer]);
+		await this.events.recordBidEvent(
+			game.players,
+			game.currentBid,
+			game.players[game.currentPlayer]
+		);
 
 		this.setNextPlayer(game);
 
@@ -232,12 +236,12 @@ export class GameService {
 
 		if (remainingPlayers.length === 1) {
 			game.state = GameState.Finished;
-			this.events.recordGameEndEvent(game.players, remainingPlayers[0].name);
+			await this.events.recordGameEndEvent(game.players, remainingPlayers[0].name);
 		} else {
 			this.setNextPlayer(game);
 			this.rollAllDice(game);
 
-			this.events.recordRoundStart(game.players);
+			await this.events.recordRoundStart(game.players);
 		}
 
 		game.currentBid = undefined;
