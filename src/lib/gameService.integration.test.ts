@@ -3,15 +3,14 @@ import { GameService } from './gameService';
 import { GameState } from '../types/types';
 import { Roller } from './roller';
 import { EventService } from './eventService';
-import { EventInMemoryRepository as InMemoryEventRepository } from './eventInMemoryRepository';
 import { GameDynamoDbRepository } from './gameDynamoDbRepository';
 import { LOCALSTACK_CONFIG } from '../types/awsConfig';
 import { GameBuilder } from './gameService.test';
+import { EventDynamoDbRepository } from './eventDynamoDbRepository';
 
-const MOCK_RANDOM = 'aRandomValue';
 const MOCK_START_PLAYER = 1;
 
-describe.skip('[Integration] GameService with DynamoDB', () => {
+describe.only('[Integration] GameService with DynamoDB', () => {
 	let repository: GameDynamoDbRepository;
 	let service: GameService;
 
@@ -22,11 +21,10 @@ describe.skip('[Integration] GameService with DynamoDB', () => {
 	beforeEach(() => {
 		repository = new GameDynamoDbRepository(LOCALSTACK_CONFIG);
 		roller = new Roller();
-		events = new EventService(new InMemoryEventRepository());
+		events = new EventService(new EventDynamoDbRepository(LOCALSTACK_CONFIG));
 		service = new GameService(repository, events, roller);
 
 		vi.spyOn(roller, 'randomNumber').mockReturnValue(MOCK_START_PLAYER);
-		vi.spyOn(service, 'generateCode').mockReturnValue(MOCK_RANDOM);
 
 		// all dice roll 1's
 		vi.spyOn(roller, 'rollDice').mockImplementation((quantity) =>
@@ -52,6 +50,9 @@ describe.skip('[Integration] GameService with DynamoDB', () => {
 		await service.placeBid(6, 3, p2Code);
 		await service.challengeBid(p3Code);
 
+		const p1GameState = await service.getGame(p1Code);
+		expect(p1GameState.events).toHaveLength(7);
+
 		// round 2: p2 makes an ill-advised challenge and loses a die
 		await service.placeBid(1, 1, p1Code);
 		await service.challengeBid(p2Code);
@@ -65,13 +66,13 @@ describe.skip('[Integration] GameService with DynamoDB', () => {
 		// round 4 - 7: p2 keeps losing and is out of dice
 		await service.placeBid(3, 1, p1Code);
 		await service.challengeBid(p2Code);
-		await service.placeBid(2, 1, p1Code);
+		await service.placeBid(2, 1, p3Code);
 		await service.placeBid(3, 1, p1Code);
 		await service.challengeBid(p2Code);
-		await service.placeBid(2, 1, p1Code);
+		await service.placeBid(2, 1, p3Code);
 		await service.placeBid(3, 1, p1Code);
 		await service.challengeBid(p2Code);
-		await service.placeBid(2, 1, p1Code);
+		await service.placeBid(2, 1, p3Code);
 		await service.placeBid(3, 1, p1Code);
 		await service.challengeBid(p2Code);
 
@@ -91,10 +92,11 @@ describe.skip('[Integration] GameService with DynamoDB', () => {
 		await service.challengeBid(p3Code);
 
 		const expectedState = new GameBuilder()
+			.setCode(gameCode)
 			.setState(GameState.Finished)
-			.addPlayer('playerOne', MOCK_RANDOM, [])
-			.addPlayer('playerTwo', MOCK_RANDOM, [])
-			.addPlayer('playerThree', MOCK_RANDOM, [1, 1, 1, 1, 1])
+			.addPlayer('playerOne', p1Code.split('-')[1], [])
+			.addPlayer('playerTwo', p2Code.split('-')[1], [])
+			.addPlayer('playerThree', p3Code.split('-')[1], [1, 1, 1, 1, 1])
 			.setCurrentPlayer(2)
 			.build();
 		const savedGame = await repository.getGame(gameCode);

@@ -602,13 +602,13 @@ describe('GameService', () => {
 		// round 4 - 7: p2 keeps losing and is out of dice
 		await service.placeBid(3, 1, p1Code);
 		await service.challengeBid(p2Code);
-		await service.placeBid(2, 1, p1Code);
+		await service.placeBid(2, 1, p3Code);
 		await service.placeBid(3, 1, p1Code);
 		await service.challengeBid(p2Code);
-		await service.placeBid(2, 1, p1Code);
+		await service.placeBid(2, 1, p3Code);
 		await service.placeBid(3, 1, p1Code);
 		await service.challengeBid(p2Code);
-		await service.placeBid(2, 1, p1Code);
+		await service.placeBid(2, 1, p3Code);
 		await service.placeBid(3, 1, p1Code);
 		await service.challengeBid(p2Code);
 
@@ -651,6 +651,12 @@ export class GameBuilder {
 			maxPlayers: 3,
 			initialDiceCount: 6
 		};
+	}
+
+	setCode(code: string): GameBuilder {
+		this.game.code = code;
+
+		return this;
 	}
 
 	setState(state: GameState): GameBuilder {
