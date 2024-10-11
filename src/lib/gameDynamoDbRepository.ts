@@ -1,115 +1,85 @@
 import {
-	DynamoDB,
-	type CreateTableInput,
-	type GetItemInput,
-	type GetItemOutput,
-	type PutItemInput
+	CreateTableCommand,
+	DescribeTableCommand,
+	DynamoDBClient,
+	ResourceNotFoundException
 } from '@aws-sdk/client-dynamodb';
 import type { IGameRepository } from '../types/interfaces';
 import { type Game } from '../types/types';
+import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { LOCALSTACK_CONFIG, type AwsConfig } from '../types/awsConfig';
 
 const TableName = 'LIARSDICE_GAMES';
 
 export class GameDynamoDbRepository implements IGameRepository {
-	private ddbClient: DynamoDB;
-	private tableExists: boolean;
+	private ddbClient: DynamoDBClient;
 
-	constructor() {
-		this.ddbClient = new DynamoDB();
-		this.tableExists = false;
+	constructor(config?: AwsConfig) {
+		if (!config) {
+			config = LOCALSTACK_CONFIG;
+		}
+
+		this.ddbClient = new DynamoDBClient(config);
+
+		this.ensureTableExists();
 	}
 
 	public async getGame(code: string): Promise<Game | undefined> {
-		await this.ensureTableExists();
-
-		const req: GetItemInput = {
+		const req = new GetCommand({
 			TableName,
 			Key: {
-				GAME_CODE: {
-					S: code
-				}
-			},
-			ProjectionExpression: 'CONTENT'
-		};
-
-		const response = await new Promise<GetItemOutput | undefined>((resolve) => {
-			this.ddbClient.getItem(req, (err, data) => {
-				if (err) {
-					resolve(undefined);
-				}
-
-				resolve(data);
-			});
+				GameCode: code
+			}
 		});
+
+		const response = await this.ddbClient.send(req);
 
 		if (!response || !response.Item) {
 			return undefined;
 		}
 
-		const contentString = response.Item['CONTENT'].S;
+		const contentString = response.Item['Content'];
 
 		return contentString ? (JSON.parse(contentString) as Game) : undefined;
 	}
 
 	public async saveGame(game: Game): Promise<void> {
-		await this.ensureTableExists();
-
-		const stringContent = JSON.stringify(game);
-		const req: PutItemInput = {
+		console.dir(game);
+		const req = new PutCommand({
 			TableName,
 			Item: {
-				GAME_CODE: { S: game.code },
-				CONTENT: { S: stringContent }
+				GameCode: game.code,
+				Content: JSON.stringify(game)
 			}
-		};
-
-		await new Promise<void>((resolve, reject) => {
-			this.ddbClient.putItem(req, (err) => {
-				if (err) {
-					reject(err);
-				}
-
-				resolve();
-			});
 		});
+
+		await this.ddbClient.send(req);
 	}
 
 	private async ensureTableExists(): Promise<void> {
-		if (this.tableExists) return;
+		const req = new DescribeTableCommand({ TableName });
 
-		const tableFound = await new Promise<boolean>((resolve) => {
-			this.ddbClient.describeTable({ TableName }, (err) => {
-				if (err) {
-					resolve(false);
-				}
-
-				resolve(true);
-			});
-		});
-
-		if (!tableFound) {
-			await this.createTable();
+		try {
+			await this.ddbClient.send(req);
+		} catch (e) {
+			if (e instanceof ResourceNotFoundException) {
+				await this.createTable();
+			}
 		}
-
-		this.tableExists = true;
 	}
 
 	private async createTable(): Promise<void> {
-		const params: CreateTableInput = {
+		const req = new CreateTableCommand({
 			TableName,
 			KeySchema: [
 				{
-					AttributeName: 'GAME_CODE',
+					AttributeName: 'GameCode',
 					KeyType: 'HASH'
 				}
 			],
 			AttributeDefinitions: [
 				{
-					AttributeName: 'GAME_CODE',
-					AttributeType: 'S'
-				},
-				{
-					AttributeName: 'CONTENT',
+					AttributeName: 'GameCode',
 					AttributeType: 'S'
 				}
 			],
@@ -117,16 +87,8 @@ export class GameDynamoDbRepository implements IGameRepository {
 				ReadCapacityUnits: 1,
 				WriteCapacityUnits: 1
 			}
-		};
-
-		return new Promise<void>((resolve, reject) => {
-			this.ddbClient.createTable(params, (err) => {
-				if (err) {
-					reject(err);
-				}
-
-				resolve();
-			});
 		});
+
+		await this.ddbClient.send(req);
 	}
 }

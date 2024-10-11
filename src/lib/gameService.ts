@@ -23,7 +23,7 @@ export class GameService {
 			initialDiceCount: 6
 		};
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 
 		return game.code;
 	}
