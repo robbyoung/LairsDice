@@ -9,7 +9,7 @@ import {
 } from '../types/event';
 import type { IEventRepository } from '../types/interfaces';
 import type { Bid, Player } from '../types/types';
-import { eventRepository } from './eventInMemoryRepository';
+import { eventRepository } from './eventDynamoDbRepository';
 
 export class EventService {
 	constructor(private repository: IEventRepository) {}

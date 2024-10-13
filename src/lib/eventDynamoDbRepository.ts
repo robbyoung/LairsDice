@@ -7,7 +7,8 @@ import {
 import { type Event } from '../types/event';
 import type { IEventRepository } from '../types/interfaces';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { LOCALSTACK_CONFIG, type AwsConfig } from '../types/awsConfig';
+import type { AwsConfig } from '../types/awsConfig';
+import { getAwsConfig } from '../utils/getAwsConfig';
 
 const TableName = 'LiarsDice_Events';
 
@@ -17,7 +18,7 @@ export class EventDynamoDbRepository implements IEventRepository {
 
 	constructor(config?: AwsConfig) {
 		if (!config) {
-			config = LOCALSTACK_CONFIG;
+			config = getAwsConfig();
 		}
 
 		this.ddbClient = new DynamoDBClient(config);
@@ -119,3 +120,5 @@ export class EventDynamoDbRepository implements IEventRepository {
 		await this.ddbClient.send(req);
 	}
 }
+
+export const eventRepository = new EventDynamoDbRepository();

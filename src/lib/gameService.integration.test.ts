@@ -4,9 +4,9 @@ import { GameState } from '../types/types';
 import { Roller } from './roller';
 import { EventService } from './eventService';
 import { GameDynamoDbRepository } from './gameDynamoDbRepository';
-import { LOCALSTACK_CONFIG } from '../types/awsConfig';
 import { GameBuilder } from './gameService.test';
 import { EventDynamoDbRepository } from './eventDynamoDbRepository';
+import { LOCALSTACK_CONFIG } from '../utils/getAwsConfig';
 
 const MOCK_START_PLAYER = 1;
 

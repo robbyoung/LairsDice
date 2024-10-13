@@ -8,7 +8,8 @@ import {
 import type { IGameRepository } from '../types/interfaces';
 import { type Game } from '../types/types';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { LOCALSTACK_CONFIG, type AwsConfig } from '../types/awsConfig';
+import { getAwsConfig } from '../utils/getAwsConfig';
+import type { AwsConfig } from '../types/awsConfig';
 
 const TableName = 'LiarsDice_Games';
 
@@ -18,7 +19,7 @@ export class GameDynamoDbRepository implements IGameRepository {
 
 	constructor(config?: AwsConfig) {
 		if (!config) {
-			config = LOCALSTACK_CONFIG;
+			config = getAwsConfig();
 		}
 
 		this.ddbClient = new DynamoDBClient(config);
@@ -108,3 +109,5 @@ export class GameDynamoDbRepository implements IGameRepository {
 		}
 	}
 }
+
+export const gameRepository = new GameDynamoDbRepository();
