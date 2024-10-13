@@ -24,5 +24,3 @@ export class EventInMemoryRepository implements IEventRepository {
 		delete this.playerEvents[playerCode];
 	}
 }
-
-export const eventRepository = new EventInMemoryRepository();

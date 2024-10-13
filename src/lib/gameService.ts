@@ -2,7 +2,8 @@ import type { GameDto, PlayerDto } from '../types/dtos';
 import type { IGameRepository } from '../types/interfaces';
 import { GameState, type Game, type Player } from '../types/types';
 import { eventService, type EventService } from './eventService';
-import { gameRepository } from './gameDynamoDbRepository';
+import { GameDynamoDbRepository } from './gameDynamoDbRepository';
+import { GameInMemoryRepository } from './gameInMemoryRepository';
 import { Roller } from './roller';
 
 export class GameService {
@@ -285,5 +286,10 @@ export class GameService {
 		} while (game.players[game.currentPlayer].dice.length === 0);
 	}
 }
+
+const gameRepository =
+	import.meta.env.MODE === 'production'
+		? new GameDynamoDbRepository()
+		: new GameInMemoryRepository();
 
 export const gameService = new GameService(gameRepository, eventService, new Roller());

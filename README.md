@@ -1,38 +1,26 @@
-# create-svelte
+# Liar's Dice
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+A SvelteKit implementation of the liar's dice game.
 
-## Creating a project
+### Build Commands
 
-If you're seeing this, you've probably already done this step. Congrats!
+`npm install` to install required packages
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+`npm run dev` for local dev with in-memory storage
 
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+`npm run dev:aws` for local dev with a connection to AWS
 
-## Developing
+- Pulls credentials from `env/.env.production`
+- If credentials / region aren't found, will use LocalStack
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+`npm run lint` to run ESLint / Prettier
 
-```bash
-npm run dev
+`npm run prettier` to format codebase
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+`npm run test` to run tests
 
-## Building
+- Integration tests are skipped by default, and require LocalStack to be running.
 
-To create a production version of your app:
+### LocalStack Setup
 
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+To run integration tests, get LocalStack to mock out the AWS connections - see LocalStack's getting started documentation [here](https://docs.localstack.cloud/getting-started/installation/).

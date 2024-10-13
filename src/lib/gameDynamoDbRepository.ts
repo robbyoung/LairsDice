@@ -109,5 +109,3 @@ export class GameDynamoDbRepository implements IGameRepository {
 		}
 	}
 }
-
-export const gameRepository = new GameDynamoDbRepository();

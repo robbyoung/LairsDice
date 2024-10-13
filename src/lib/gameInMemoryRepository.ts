@@ -21,5 +21,3 @@ export class GameInMemoryRepository implements IGameRepository {
 		}
 	}
 }
-
-export const gameRepository = new GameInMemoryRepository();

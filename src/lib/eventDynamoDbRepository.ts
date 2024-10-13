@@ -120,5 +120,3 @@ export class EventDynamoDbRepository implements IEventRepository {
 		await this.ddbClient.send(req);
 	}
 }
-
-export const eventRepository = new EventDynamoDbRepository();

@@ -9,7 +9,8 @@ import {
 } from '../types/event';
 import type { IEventRepository } from '../types/interfaces';
 import type { Bid, Player } from '../types/types';
-import { eventRepository } from './eventDynamoDbRepository';
+import { EventDynamoDbRepository } from './eventDynamoDbRepository';
+import { EventInMemoryRepository } from './eventInMemoryRepository';
 
 export class EventService {
 	constructor(private repository: IEventRepository) {}
@@ -90,5 +91,10 @@ export class EventService {
 		}
 	}
 }
+
+const eventRepository =
+	import.meta.env.MODE === 'production'
+		? new EventDynamoDbRepository()
+		: new EventInMemoryRepository();
 
 export const eventService = new EventService(eventRepository);
