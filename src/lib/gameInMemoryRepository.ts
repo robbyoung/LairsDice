@@ -1,6 +1,7 @@
+import type { IGameRepository } from '../types/interfaces';
 import { type Game } from '../types/types';
 
-export class GameRepository {
+export class GameInMemoryRepository implements IGameRepository {
 	private games: Game[];
 
 	constructor() {
@@ -20,5 +21,3 @@ export class GameRepository {
 		}
 	}
 }
-
-export const gameRepository = new GameRepository();

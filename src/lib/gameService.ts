@@ -1,12 +1,14 @@
 import type { GameDto, PlayerDto } from '../types/dtos';
+import type { IGameRepository } from '../types/interfaces';
 import { GameState, type Game, type Player } from '../types/types';
 import { eventService, type EventService } from './eventService';
-import { gameRepository, GameRepository } from './gameRepository';
+import { GameDynamoDbRepository } from './gameDynamoDbRepository';
+import { GameInMemoryRepository } from './gameInMemoryRepository';
 import { Roller } from './roller';
 
 export class GameService {
 	constructor(
-		private repository: GameRepository,
+		private repository: IGameRepository,
 		private events: EventService,
 		private roller: Roller
 	) {}
@@ -22,7 +24,7 @@ export class GameService {
 			initialDiceCount: 6
 		};
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 
 		return game.code;
 	}
@@ -55,7 +57,7 @@ export class GameService {
 			throw new Error('max player cap check failed');
 		}
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 
 		return `${gameCode}-${playerCode}`;
 	}
@@ -91,9 +93,9 @@ export class GameService {
 		this.chooseStartingPlayer(game);
 		this.updateGameState(GameState.InProgress, game);
 
-		this.events.recordRoundStart(game.players);
+		await this.events.recordRoundStart(game.players);
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 	}
 
 	public async getGame(playerToken: string): Promise<GameDto> {
@@ -173,11 +175,15 @@ export class GameService {
 
 		game.currentBid = { quantity, dice };
 
-		this.events.recordBidEvent(game.players, game.currentBid, game.players[game.currentPlayer]);
+		await this.events.recordBidEvent(
+			game.players,
+			game.currentBid,
+			game.players[game.currentPlayer]
+		);
 
 		this.setNextPlayer(game);
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 	}
 
 	public async challengeBid(playerToken: string): Promise<void> {
@@ -231,17 +237,17 @@ export class GameService {
 
 		if (remainingPlayers.length === 1) {
 			game.state = GameState.Finished;
-			this.events.recordGameEndEvent(game.players, remainingPlayers[0].name);
+			await this.events.recordGameEndEvent(game.players, remainingPlayers[0].name);
 		} else {
 			this.setNextPlayer(game);
 			this.rollAllDice(game);
 
-			this.events.recordRoundStart(game.players);
+			await this.events.recordRoundStart(game.players);
 		}
 
 		game.currentBid = undefined;
 
-		this.repository.saveGame(game);
+		await this.repository.saveGame(game);
 	}
 
 	public generateCode() {
@@ -280,5 +286,10 @@ export class GameService {
 		} while (game.players[game.currentPlayer].dice.length === 0);
 	}
 }
+
+const gameRepository =
+	import.meta.env.MODE === 'production'
+		? new GameDynamoDbRepository()
+		: new GameInMemoryRepository();
 
 export const gameService = new GameService(gameRepository, eventService, new Roller());

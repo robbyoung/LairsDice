@@ -20,14 +20,27 @@ export default [
 		}
 	},
 	{
+		files: ['**/*.ts'],
+		languageOptions: {
+			parser: ts.parser,
+			parserOptions: {
+				project: ['./tsconfig.json']
+			}
+		},
+		rules: {
+			'@typescript-eslint/no-floating-promises': 'error'
+		}
+	},
+	{
 		files: ['**/*.svelte'],
 		languageOptions: {
+			parser: svelte.parser,
 			parserOptions: {
 				parser: ts.parser
 			}
 		}
 	},
 	{
-		ignores: ['build/', '.svelte-kit/', 'dist/']
+		ignores: ['build/', '.svelte-kit/', 'dist/', '*.config.js']
 	}
 ];

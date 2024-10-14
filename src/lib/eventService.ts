@@ -7,11 +7,13 @@ import {
 	type PeekEvent,
 	type RoundStartEvent
 } from '../types/event';
+import type { IEventRepository } from '../types/interfaces';
 import type { Bid, Player } from '../types/types';
-import { eventRepository, type EventRepository } from './eventRepository';
+import { EventDynamoDbRepository } from './eventDynamoDbRepository';
+import { EventInMemoryRepository } from './eventInMemoryRepository';
 
 export class EventService {
-	constructor(private repository: EventRepository) {}
+	constructor(private repository: IEventRepository) {}
 
 	public async popPlayerEvents(playerCode: string): Promise<Event[]> {
 		const events = await this.repository.getPlayerEvents(playerCode);
@@ -89,5 +91,10 @@ export class EventService {
 		}
 	}
 }
+
+const eventRepository =
+	import.meta.env.MODE === 'production'
+		? new EventDynamoDbRepository()
+		: new EventInMemoryRepository();
 
 export const eventService = new EventService(eventRepository);

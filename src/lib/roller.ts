@@ -3,7 +3,7 @@ export class Roller {
 		const playerDice: number[] = [];
 
 		while (playerDice.length < diceCount) {
-			playerDice.push(this.randomNumber(6));
+			playerDice.push(this.randomNumber(6) + 1);
 		}
 
 		return playerDice;
