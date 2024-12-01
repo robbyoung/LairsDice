@@ -85,3 +85,35 @@ export async function getGame(playerToken: string): Promise<GetGameResponse> {
 	const json = await response.json();
 	return json as GetGameResponse;
 }
+
+export async function placeBid(playerToken: string, quantity: number, dice: number): Promise<void> {
+	const body = JSON.stringify({
+		quantity,
+		dice
+	});
+
+	const response = await fetch('/api/placeBid', {
+		method: 'POST',
+		body,
+		headers: {
+			'Player-Token': playerToken
+		}
+	});
+
+	if (!response.ok) {
+		throw new Error(`/addPlayer returned status ${response.status}`);
+	}
+}
+
+export async function challengeBid(playerToken: string): Promise<void> {
+	const response = await fetch('/api/challengeBid', {
+		method: 'POST',
+		headers: {
+			'Player-Token': playerToken
+		}
+	});
+
+	if (!response.ok) {
+		throw new Error(`/addPlayer returned status ${response.status}`);
+	}
+}
