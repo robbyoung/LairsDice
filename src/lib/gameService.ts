@@ -63,14 +63,17 @@ export class GameService {
 	}
 
 	public async getPlayers(playerToken: string): Promise<PlayerDto[]> {
-		const { gameCode } = this.splitPlayerToken(playerToken);
+		const { gameCode, playerCode } = this.splitPlayerToken(playerToken);
 		const game: Game | undefined = await this.repository.getGame(gameCode);
 
 		if (!game) {
 			throw new Error('Game is undefined');
 		}
 
-		return game.players.map((player) => ({ name: player.name }));
+		return game.players.map((player) => ({
+			name: player.name,
+			isCaller: player.code === playerCode
+		}));
 	}
 
 	public async startGame(playerToken: string): Promise<void> {
@@ -129,6 +132,7 @@ export class GameService {
 		const playerDtos: PlayerDto[] = game.players.map((player, i) => {
 			return {
 				name: player.name,
+				isCaller: playerIndex === i,
 				lastBid: bidderIndex === i ? game.currentBid : undefined,
 				dice: playerIndex === i ? player.dice : undefined,
 				currentTurn: game.currentPlayer === i

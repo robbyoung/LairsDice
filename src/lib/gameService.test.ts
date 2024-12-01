@@ -114,7 +114,10 @@ describe('GameService', () => {
 			const playerOneToken = `${initialState.code}-p1`;
 			const result = await service.getPlayers(playerOneToken);
 
-			const expectedPlayers: PlayerDto[] = [{ name: 'player one' }, { name: 'player two' }];
+			const expectedPlayers: PlayerDto[] = [
+				{ name: 'player one', isCaller: true },
+				{ name: 'player two', isCaller: false }
+			];
 			expect(result).toStrictEqual(expectedPlayers);
 		});
 
@@ -558,14 +561,32 @@ describe('GameService', () => {
 			expect(result.players[0].lastBid).toBeUndefined();
 			expect(result.players[0].currentTurn).toBe(true);
 			expect(result.players[0].dice).toBeUndefined();
+			expect(result.players[0].isCaller).toBe(false);
 			expect(result.players[1].name).toBe('playerTwo');
 			expect(result.players[1].lastBid).toBeUndefined();
 			expect(result.players[1].currentTurn).toBe(false);
 			expect(result.players[1].dice).toStrictEqual([2, 2]);
+			expect(result.players[1].isCaller).toBe(true);
 			expect(result.players[2].name).toBe('playerThree');
 			expect(result.players[2].lastBid).toStrictEqual({ quantity: 3, dice: 4 });
 			expect(result.players[2].currentTurn).toBe(false);
 			expect(result.players[2].dice).toBeUndefined();
+			expect(result.players[2].isCaller).toBe(false);
+		});
+
+		it('throws when called on a lobby', async () => {
+			const initialState = new GameBuilder()
+				.setState(GameState.Lobby)
+				.addPlayer('playerOne', 'p1', [0, 0, 0])
+				.addPlayer('playerTwo', 'p2', [0, 0, 0])
+				.build();
+			getSpy.mockResolvedValue(initialState);
+
+			const playerTwoToken = `${initialState.code}-${initialState.players[1].code}`;
+
+			const func = async () => await service.getGame(playerTwoToken);
+
+			await expect(func).rejects.toThrowError();
 		});
 	});
 
