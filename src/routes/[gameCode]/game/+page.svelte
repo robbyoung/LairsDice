@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy, onMount } from 'svelte';
 	import { challengeBid, getGame, placeBid } from '../../../lib/apiClient.js';
 
 	let { data } = $props();
@@ -9,12 +10,20 @@
 	let bidDice = $state('');
 	let bidQuantity = $state('');
 
-	setInterval(async () => {
-		const game = await getGame(data.playerToken);
+	let gamePoller = $state<number | undefined>(undefined);
 
-		player = game.players.find((p) => p.isCaller)!;
-		events = [...game.events.reverse(), ...events];
-	}, 5000);
+	onMount(() => {
+		setInterval(async () => {
+			const game = await getGame(data.playerToken);
+
+			player = game.players.find((p) => p.isCaller)!;
+			events = [...game.events.reverse(), ...events];
+		}, 5000);
+	});
+
+	onDestroy(() => {
+		clearInterval(gamePoller);
+	});
 
 	async function bid() {
 		const parsedQuantity = parseInt(bidQuantity ?? '');
