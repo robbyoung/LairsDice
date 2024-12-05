@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
-	import { getPlayers, startGame } from '../../../lib/apiClient.js';
+	import { getGame, startGame } from '../../../lib/apiClient.js';
+	import { GameState } from '../../../types/types.js';
 
 	let { data } = $props();
 
@@ -17,9 +18,13 @@
 
 	onMount(() => {
 		setInterval(async () => {
-			const players = await getPlayers(data.playerToken);
+			const game = await getGame(data.playerToken);
 
-			playerList = players;
+			playerList = game.players;
+
+			if (game.state === GameState.InProgress) {
+				goto(`/${data.gameCode}/game?p=${data.playerToken}`);
+			}
 		}, 5000);
 	});
 

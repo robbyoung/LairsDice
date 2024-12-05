@@ -8,14 +8,14 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	const playerToken = url.searchParams.get('p');
 
 	if (params.gameCode && playerToken) {
-		const players = await gameService.getPlayers(playerToken);
+		const game = await gameService.getGame(playerToken);
 
-		const playerIndex = players.findIndex((p) => p.isCaller);
+		const playerIndex = game.players.findIndex((p) => p.isCaller);
 
 		return {
 			gameCode: params.gameCode,
 			playerToken,
-			players,
+			players: game.players,
 			isHost: playerIndex === 0
 		};
 	}

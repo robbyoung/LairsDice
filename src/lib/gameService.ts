@@ -62,20 +62,6 @@ export class GameService {
 		return `${gameCode}-${playerCode}`;
 	}
 
-	public async getPlayers(playerToken: string): Promise<PlayerDto[]> {
-		const { gameCode, playerCode } = this.splitPlayerToken(playerToken);
-		const game: Game | undefined = await this.repository.getGame(gameCode);
-
-		if (!game) {
-			throw new Error('Game is undefined');
-		}
-
-		return game.players.map((player) => ({
-			name: player.name,
-			isCaller: player.code === playerCode
-		}));
-	}
-
 	public async startGame(playerToken: string): Promise<void> {
 		const { gameCode, playerCode } = this.splitPlayerToken(playerToken);
 		const game: Game | undefined = await this.repository.getGame(gameCode);
@@ -107,6 +93,17 @@ export class GameService {
 
 		if (!game) {
 			throw new Error('Game is undefined');
+		}
+
+		if (game.state === GameState.Lobby) {
+			return {
+				players: game.players.map((player) => ({
+					name: player.name,
+					isCaller: player.code === playerCode
+				})),
+				events: [],
+				state: GameState.Lobby
+			};
 		}
 
 		if (game.currentPlayer === undefined) {

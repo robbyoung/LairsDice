@@ -1,4 +1,4 @@
-import type { GameDto, PlayerDto } from '../types/dtos';
+import type { GameDto } from '../types/dtos';
 
 export interface CreateGameResponse {
 	gameCode: string;
@@ -35,24 +35,6 @@ export async function addPlayer(name: string, gameCode: string): Promise<AddPlay
 
 	const json = await response.json();
 	return json as AddPlayerResponse;
-}
-
-export type GetPlayersResponse = PlayerDto[];
-
-export async function getPlayers(playerToken: string): Promise<GetPlayersResponse> {
-	const response = await fetch('/api/getPlayers', {
-		method: 'GET',
-		headers: {
-			'Player-Token': playerToken
-		}
-	});
-
-	if (!response.ok) {
-		throw new Error(`/getPlayers returned status ${response.status}`);
-	}
-
-	const json = await response.json();
-	return json as GetPlayersResponse;
 }
 
 export async function startGame(playerToken: string): Promise<void> {
